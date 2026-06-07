@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: postgres_calendar
+    restart: always
+    environment:
+      - POSTGRES_DB=calendar
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/postgresql
+      - db-logs:/var/log/postgresql
+
+  calendar-service:
+    build:
+      context: .
+      dockerfile: ./src/main/docker/Dockerfile
+    container_name: calendar-service
+    restart: always
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=calendar
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ./logs/:/logs
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  db-data:
+  db-logs:
