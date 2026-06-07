@@ -1,13 +1,13 @@
-package com.yurupari.backend_calendar;
+package com.yurupari.calendar;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BackendCalendarApplication {
+public class CalendarApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(BackendCalendarApplication.class, args);
+		SpringApplication.run(CalendarApplication.class, args);
 	}
 
 }
