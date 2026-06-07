@@ -23,4 +23,4 @@ CREATE TABLE slot (
 
 CREATE INDEX idx_slots_calendar_range
     ON slot (calendar_id, start_time, end_time);
-CREATE INDEX idx_slot_meeting ON slots (meeting_id);
+CREATE INDEX idx_slot_meeting ON slot (meeting_id);
