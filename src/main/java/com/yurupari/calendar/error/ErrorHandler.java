@@ -3,6 +3,8 @@ package com.yurupari.calendar.error;
 import com.yurupari.calendar.model.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -10,6 +12,18 @@ import java.time.LocalDateTime;
 
 @ControllerAdvice
 public class ErrorHandler {
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleMalformedJson(HttpMessageNotReadableException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
 
     @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleException(Exception e) {

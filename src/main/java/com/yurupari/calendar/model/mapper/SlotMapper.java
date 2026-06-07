@@ -1,8 +1,6 @@
 package com.yurupari.calendar.model.mapper;
 
 import com.yurupari.calendar.model.dto.SlotDto;
-import com.yurupari.calendar.model.entity.Calendar;
-import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

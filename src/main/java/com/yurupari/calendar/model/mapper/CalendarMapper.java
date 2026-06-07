@@ -2,7 +2,6 @@ package com.yurupari.calendar.model.mapper;
 
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.entity.Calendar;
-import com.yurupari.calendar.model.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
