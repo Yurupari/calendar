@@ -1,0 +1,13 @@
+CREATE TABLE calendar (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
+    user_id BIGINT,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_calendar_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_calendar_user ON calendar (user_id);
