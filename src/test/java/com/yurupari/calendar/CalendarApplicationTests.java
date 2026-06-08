@@ -97,11 +97,12 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		mockMvc.perform(post("/api/v1/user/create")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isOk())
+				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").exists())
 				.andExpect(jsonPath("$.name").value("John"))
-				.andExpect(jsonPath("$.lastName").value("Doe"))
-				.andExpect(jsonPath("$.email").value("john.doe@example.com"));
+				.andExpect(jsonPath("$.lastname").value("Doe"))
+				.andExpect(jsonPath("$.email").value("john.doe@example.com"))
+				.andExpect(jsonPath("$.calendarId").exists());
 	}
 
 	@Test
@@ -117,12 +118,14 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	@Test
 	void getUser_Success() throws Exception {
 		var user = testEntityCreator.createTestUser();
+		testEntityCreator.createTestCalendar(user);
 
 		mockMvc.perform(get("/api/v1/user/" + user.getId()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("Test"))
-				.andExpect(jsonPath("$.lastName").value("User"))
-				.andExpect(jsonPath("$.email").value("test.user@example.com"));
+				.andExpect(jsonPath("$.lastname").value("User"))
+				.andExpect(jsonPath("$.email").value("test.user@example.com"))
+				.andExpect(jsonPath("$.calendarId").exists());
 	}
 
 	@Test
@@ -134,6 +137,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	@Test
 	void updateUser_Success() throws Exception {
 		var user = testEntityCreator.createTestUser();
+		testEntityCreator.createTestCalendar(user);
 		var request = jsonTestUtils.loadRequest(UPDATE_USER_JSON);
 
 		mockMvc.perform(put("/api/v1/user/" + user.getId())
@@ -144,14 +148,16 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	}
 
 	@Test
-	void updateUser_BadRequest_EmptyEmail() throws Exception {
+	void updateUser_Success_EmptyEmail() throws Exception {
 		var user = testEntityCreator.createTestUser();
+		testEntityCreator.createTestCalendar(user);
 		var request = jsonTestUtils.loadRequest(UPDATE_USER_BAD_REQUEST_JSON);
 
 		mockMvc.perform(put("/api/v1/user/" + user.getId())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isOk())
+				.andExpect(content().string("User updated successfully"));
 	}
 
 	@Test
@@ -167,6 +173,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	@Test
 	void deleteUser_Success() throws Exception {
 		var user = testEntityCreator.createTestUser();
+		testEntityCreator.createTestCalendar(user);
 
 		mockMvc.perform(delete("/api/v1/user/" + user.getId()))
 				.andExpect(status().isNoContent());

@@ -1,6 +1,6 @@
 {
-  "id": 1,
-  "name": "Edgar",
-  "lastname": "Scholz",
-  "email": "edgar.scholz@example.com"
+  "name": "Jane",
+  "lastname": "Smith",
+  "email": "jane.smith@example.com",
+  "timezone": "America/Los_Angeles"
 }
