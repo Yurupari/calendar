@@ -1,8 +1,11 @@
 package com.yurupari.calendar.model.request;
 
+import lombok.Builder;
+
+@Builder
 public record UpdateUserRequest(
         String name,
-        String lastname,
+        String lastName,
         String email,
         String timezone
 ) {

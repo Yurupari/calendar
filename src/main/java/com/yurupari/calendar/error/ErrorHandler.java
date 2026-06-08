@@ -1,5 +1,9 @@
 package com.yurupari.calendar.error;
 
+import com.yurupari.calendar.exception.CalendarNotFoundException;
+import com.yurupari.calendar.exception.InvalidFormatException;
+import com.yurupari.calendar.exception.UserAlreadyExistsException;
+import com.yurupari.calendar.exception.UserNotFoundException;
 import com.yurupari.calendar.model.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +16,30 @@ import java.time.LocalDateTime;
 
 @ControllerAdvice
 public class ErrorHandler {
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleCalendarNotFoundException(CalendarNotFoundException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleInvalidFormatException(InvalidFormatException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
 
     @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {

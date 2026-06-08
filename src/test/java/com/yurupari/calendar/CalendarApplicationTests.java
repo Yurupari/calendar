@@ -100,7 +100,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").exists())
 				.andExpect(jsonPath("$.name").value("John"))
-				.andExpect(jsonPath("$.lastname").value("Doe"))
+				.andExpect(jsonPath("$.lastName").value("Doe"))
 				.andExpect(jsonPath("$.email").value("john.doe@example.com"))
 				.andExpect(jsonPath("$.calendarId").exists());
 	}
@@ -123,7 +123,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		mockMvc.perform(get("/api/v1/user/" + user.getId()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("Test"))
-				.andExpect(jsonPath("$.lastname").value("User"))
+				.andExpect(jsonPath("$.lastName").value("User"))
 				.andExpect(jsonPath("$.email").value("test.user@example.com"))
 				.andExpect(jsonPath("$.calendarId").exists());
 	}

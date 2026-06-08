@@ -1,13 +1,15 @@
 package com.yurupari.calendar.model.request;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 
+@Builder
 public record CreateUserRequest(
         @NotNull(message = "Name cannot be null")
         String name,
 
         @NotNull(message = "Lastname cannot be null")
-        String lastname,
+        String lastName,
 
         @NotNull(message = "Email cannot be null")
         String email,
