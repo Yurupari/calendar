@@ -15,5 +15,7 @@ public interface SlotService {
 
     void updateSlot(Long id, UpdateSlotRequest updateSlotRequest);
 
+    void updateSlots(List<Long> ids, UpdateSlotRequest updateSlotRequest);
+
     void deleteSlot(Long id);
 }

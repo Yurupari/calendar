@@ -41,7 +41,7 @@ public class SlotServiceImpl implements SlotService {
     @Override
     @Transactional
     public SlotResponse createSlot(CreateSlotRequest createSlotRequest) {
-        log.info("Saving slot: request={}", createSlotRequest);
+        log.info("Creating slot: request={}", createSlotRequest);
 
         slotValidator.validateDates(createSlotRequest.startTime(), createSlotRequest.endTime());
 
@@ -77,6 +77,8 @@ public class SlotServiceImpl implements SlotService {
 
     @Override
     public SlotResponse getSlotById(Long id) {
+        log.info("Getting slot: id={}", id);
+
         var slot = slotRepository.findById(id)
                 .orElseThrow(() -> new SlotNotFoundException(id));
 
@@ -85,6 +87,8 @@ public class SlotServiceImpl implements SlotService {
 
     @Override
     public List<SlotResponse> getSlots(Long userId, String from, String until) {
+        log.info("Getting slots: userId={}, from={}, until={}", userId, from, until);
+
         var calendarDto = calendarService.getCalendarByUserId(userId);
 
         var fromInstant = timeUtil.parseIsoStringToInstant(from, calendarDto.timezone());
@@ -96,7 +100,10 @@ public class SlotServiceImpl implements SlotService {
     }
 
     @Override
+    @Transactional
     public void updateSlot(Long id, UpdateSlotRequest updateSlotRequest) {
+        log.info("Updating slot: id={}, request={}", id, updateSlotRequest);
+
         slotValidator.validateDates(updateSlotRequest.startTime(), updateSlotRequest.endTime());
 
         var slot = slotRepository.findById(id)
@@ -120,7 +127,30 @@ public class SlotServiceImpl implements SlotService {
     }
 
     @Override
+    @Transactional
+    public void updateSlots(List<Long> ids, UpdateSlotRequest updateSlotRequest) {
+        log.info("Updating slots: ids=[{}], request={}", ids, updateSlotRequest);
+
+        var slots = slotRepository.findAllById(ids);
+
+        slots.forEach(slot -> {
+            var slotDto = SlotDto.builder()
+                    .meetingId(updateSlotRequest.meetingId())
+                    .status(updateSlotRequest.status())
+                    .role(updateSlotRequest.role())
+                    .build();
+
+            slotMapper.updateEntityFromDto(slotDto, slot);
+        });
+
+        slotRepository.saveAll(slots);
+    }
+
+    @Override
+    @Transactional
     public void deleteSlot(Long id) {
+        log.info("Deleting slot: id={}", id);
+
         slotRepository.deleteById(id);
     }
 

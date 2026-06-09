@@ -26,6 +26,8 @@ public class CalendarServiceImpl implements CalendarService {
     @Override
     @Transactional
     public CalendarDto createCalendar(CalendarDto calendarDto) {
+        log.info("Creating calendar: calendarDto={}", calendarDto);
+
         var calendar = calendarMapper.toEntity(calendarDto);
         var savedCalendar = calendarRepository.save(calendar);
 
@@ -34,6 +36,8 @@ public class CalendarServiceImpl implements CalendarService {
 
     @Override
     public CalendarDto getCalendarById(Long id) {
+        log.info("Getting calendar: id={}", id);
+
         return calendarRepository.findById(id)
                 .map(calendarMapper::toDto)
                 .orElseThrow(() -> new CalendarNotFoundException(
@@ -43,6 +47,8 @@ public class CalendarServiceImpl implements CalendarService {
 
     @Override
     public CalendarDto getCalendarByUserId(Long userId) {
+        log.info("Getting calendar: userId={}", userId);
+
         return calendarRepository.findByUserId(userId)
                 .map(calendarMapper::toDto)
                 .orElseThrow(() -> new CalendarNotFoundException(
@@ -53,6 +59,8 @@ public class CalendarServiceImpl implements CalendarService {
     @Override
     @Transactional
     public CalendarDto activateCalendar(Long userId) {
+        log.info("Activate calendar: userId={}", userId);
+
         var calendar = calendarRepository.findByUserId(userId)
                 .orElseThrow(() -> new CalendarNotFoundException(
                         String.format("Calendar not found: userId=%s", userId)
@@ -67,6 +75,8 @@ public class CalendarServiceImpl implements CalendarService {
     @Override
     @Transactional
     public void updateCalendar(Long userId, String timezone) {
+        log.info("Update calendar: userId={}, timezone={}", userId, timezone);
+
         Optional.ofNullable(timezone)
                 .filter(t -> !t.isBlank())
                 .ifPresentOrElse(
@@ -89,6 +99,8 @@ public class CalendarServiceImpl implements CalendarService {
     @Override
     @Transactional
     public void deleteCalendarByUserId(Long userId) {
+        log.info("Inactivate calendar: userId={}", userId);
+
         var calendar = calendarRepository.findByUserId(userId)
                 .orElseThrow(() -> new CalendarNotFoundException(
                         String.format("Calendar not found: userId=%s", userId)

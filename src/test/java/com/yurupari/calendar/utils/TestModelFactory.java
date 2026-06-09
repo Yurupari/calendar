@@ -10,6 +10,7 @@ import com.yurupari.calendar.model.enums.MeetingStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
+import com.yurupari.calendar.model.request.CreateMeetingRequest;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.CreateUserRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
@@ -19,6 +20,7 @@ import com.yurupari.calendar.model.response.UserResponse;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class TestModelFactory {
 
@@ -135,6 +137,16 @@ public class TestModelFactory {
                 .endTime(endTime)
                 .status(status)
                 .role(role)
+                .build();
+    }
+
+    public static CreateMeetingRequest createTestCreateMeetingRequest(Long hostId, Long slotId, String title, String description, List<Long> participants) {
+        return CreateMeetingRequest.builder()
+                .hostId(hostId)
+                .slotId(slotId)
+                .title(title)
+                .description(description)
+                .participants(participants)
                 .build();
     }
 }

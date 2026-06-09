@@ -14,8 +14,6 @@ import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.SlotMapperImpl;
-import com.yurupari.calendar.model.request.CreateSlotRequest;
-import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.repository.SlotRepository;
 import com.yurupari.calendar.service.CalendarService;
 import com.yurupari.calendar.util.TimeUtil;

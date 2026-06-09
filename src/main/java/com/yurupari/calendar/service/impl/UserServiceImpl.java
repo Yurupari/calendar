@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,14 +36,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse createUser(CreateUserRequest createUserRequest) {
+        log.info("Creating user: request={}", createUserRequest);
+
         var userDto = UserDto.builder()
                 .name(createUserRequest.name())
                 .lastName(createUserRequest.lastName())
                 .email(createUserRequest.email())
                 .build();
         userValidator.validateUser(userDto);
-
-        log.info("Creating user: user={}, timezone={}", userDto, createUserRequest.timezone());
 
         return userRepository.findByEmail(userDto.email())
                 .map(u -> {
@@ -126,16 +128,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserDto> getUsers(List<Long> userIds) {
+        log.info("Getting users: ids=[{}]", userIds);
+
+        return userRepository.findAllById(userIds).stream()
+                .map(userMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public List<UserDto> getUsersByMeetingId(Long meetingId) {
+        log.info("Getting users: meetingId={}", meetingId);
+
+        return userRepository.findParticipantsByMeetingId(meetingId).stream()
+                .map(userMapper::toDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void updateUser(Long id, UpdateUserRequest updateUserRequest) {
+        log.info("Updating user: id={}, request={}", id, updateUserRequest);
+
         var userDto = UserDto.builder()
                 .name(updateUserRequest.name())
                 .lastName(updateUserRequest.lastName())
                 .email(updateUserRequest.email())
                 .build();
         userValidator.validateUser(userDto);
-
-        log.info("Updating user: id={}, user={}", id, userDto);
 
         var user = userRepository.findById(id)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))
@@ -150,7 +170,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        log.info("Deleting user: id={}", id);
+        log.info("Inactivating user: id={}", id);
 
         var user = userRepository.findById(id)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))

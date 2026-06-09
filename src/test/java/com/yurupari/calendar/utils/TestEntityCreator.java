@@ -40,6 +40,14 @@ public class TestEntityCreator {
                 .build());
     }
 
+    public User createTestUser(String name, String lastName) {
+        return userRepository.save(User.builder()
+                .name(name)
+                .lastName(lastName)
+                .email(name + "." + lastName + "@example.com")
+                .build());
+    }
+
     public Calendar createTestCalendar(User user) {
         return calendarRepository.save(Calendar.builder()
                 .timezone("America/New_York")

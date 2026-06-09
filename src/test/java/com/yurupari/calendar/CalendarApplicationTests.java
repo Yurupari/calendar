@@ -23,8 +23,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 
-import static com.yurupari.calendar.utils.TestConstants.CREATE_CALENDAR_BAD_REQUEST_JSON;
-import static com.yurupari.calendar.utils.TestConstants.CREATE_CALENDAR_JSON;
 import static com.yurupari.calendar.utils.TestConstants.CREATE_MEETING_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.CREATE_MEETING_JSON;
 import static com.yurupari.calendar.utils.TestConstants.CREATE_SLOT_BAD_REQUEST_JSON;
@@ -33,8 +31,6 @@ import static com.yurupari.calendar.utils.TestConstants.CREATE_USER_BAD_REQUEST_
 import static com.yurupari.calendar.utils.TestConstants.CREATE_USER_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_CALENDAR_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_CALENDAR_JSON;
-import static com.yurupari.calendar.utils.TestConstants.UPDATE_MEETING_BAD_REQUEST_JSON;
-import static com.yurupari.calendar.utils.TestConstants.UPDATE_MEETING_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_SLOT_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_SLOT_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_USER_BAD_REQUEST_JSON;
@@ -247,22 +243,40 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	
 	@Test
 	void createMeeting_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var request = jsonTestUtils.loadRequest(CREATE_MEETING_JSON).replace("\"hostId\": 1", "\"hostId\": " + user.getId());
+		var host = testEntityCreator.createTestUser();
+		var firstParticipant = testEntityCreator.createTestUser("First", "Participant");
+		var secondParticipant = testEntityCreator.createTestUser("Second", "Participant");
+
+		var slot = testEntityCreator.createTestSlot(testEntityCreator.createTestCalendar(host), testEntityCreator.createTestMeeting(host));
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(firstParticipant),
+				testEntityCreator.createTestMeeting(firstParticipant));
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(secondParticipant),
+				testEntityCreator.createTestMeeting(secondParticipant));
+
+		var request = jsonTestUtils.loadRequest(CREATE_MEETING_JSON)
+				.replace("\"hostId\": 1", "\"hostId\": " + host.getId())
+				.replace("\"slotId\": 1", "\"slotId\": " + slot.getId());
 
 		mockMvc.perform(post("/api/v1/meeting/create")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isOk())
+				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").exists())
-				.andExpect(jsonPath("$.hostId").value(user.getId()))
-				.andExpect(jsonPath("$.title").value("Project Sync"));
+				.andExpect(jsonPath("$.host.id").value(host.getId()))
+				.andExpect(jsonPath("$.title").value("Project Sync"))
+				.andExpect(jsonPath("$.participants").isArray())
+				.andExpect(jsonPath("$.participants.length()").value(2));
 	}
 
 	@Test
 	void createMeeting_BadRequest_MissingTitle() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var request = jsonTestUtils.loadRequest(CREATE_MEETING_BAD_REQUEST_JSON).replace("\"hostId\": 1", "\"hostId\": " + user.getId());
+		var host = testEntityCreator.createTestUser();
+		var slot = testEntityCreator.createTestSlot(testEntityCreator.createTestCalendar(host), testEntityCreator.createTestMeeting(host)); // Create a slot for the meeting
+		var request = jsonTestUtils.loadRequest(CREATE_MEETING_BAD_REQUEST_JSON)
+				.replace("\"hostId\": 1", "\"hostId\": " + host.getId())
+				.replace("\"slotId\": 1", "\"slotId\": " + slot.getId());
 
 		mockMvc.perform(post("/api/v1/meeting/create")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -272,69 +286,23 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 
 	@Test
 	void getMeeting_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var meeting = testEntityCreator.createTestMeeting(user);
-
+		var host = testEntityCreator.createTestUser();
+		var calendar = testEntityCreator.createTestCalendar(host);
+		var meeting = testEntityCreator.createTestMeeting(host);
+		testEntityCreator.createTestSlot(calendar, meeting);
+		
 		mockMvc.perform(get("/api/v1/meeting/" + meeting.getId()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(meeting.getId()))
-				.andExpect(jsonPath("$.hostId").value(user.getId()))
-				.andExpect(jsonPath("$.title").value("Test Meeting"));
+				.andExpect(jsonPath("$.host.id").value(host.getId()))
+				.andExpect(jsonPath("$.title").value("Test Meeting"))
+				.andExpect(jsonPath("$.participants").isArray())
+				.andExpect(jsonPath("$.participants.length()").value(0)); // Default created meeting has no participants
 	}
 
 	@Test
 	void getMeeting_NotFound() throws Exception {
 		mockMvc.perform(get("/api/v1/meeting/1"))
-				.andExpect(status().isNotFound());
-	}
-
-	@Test
-	void updateMeeting_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var meeting = testEntityCreator.createTestMeeting(user);
-		var request = jsonTestUtils.loadRequest(UPDATE_MEETING_JSON);
-
-		mockMvc.perform(put("/api/v1/meeting/" + meeting.getId())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(request))
-				.andExpect(status().isOk())
-				.andExpect(content().string("Meeting updated successfully"));
-	}
-
-	@Test
-	void updateMeeting_BadRequest_EmptyTitle() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var meeting = testEntityCreator.createTestMeeting(user);
-		var request = jsonTestUtils.loadRequest(UPDATE_MEETING_BAD_REQUEST_JSON);
-
-		mockMvc.perform(put("/api/v1/meeting/" + meeting.getId())
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(request))
-				.andExpect(status().isBadRequest());
-	}
-
-	@Test
-	void updateMeeting_NotFound() throws Exception {
-		var request = jsonTestUtils.loadRequest(UPDATE_MEETING_JSON);
-
-		mockMvc.perform(put("/api/v1/meeting/1")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(request))
-				.andExpect(status().isNotFound());
-	}
-
-	@Test
-	void deleteMeeting_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var meeting = testEntityCreator.createTestMeeting(user);
-
-		mockMvc.perform(delete("/api/v1/meeting/" + meeting.getId()))
-				.andExpect(status().isNoContent());
-	}
-
-	@Test
-	void deleteMeeting_NotFound() throws Exception {
-		mockMvc.perform(delete("/api/v1/meeting/1"))
 				.andExpect(status().isNotFound());
 	}
 

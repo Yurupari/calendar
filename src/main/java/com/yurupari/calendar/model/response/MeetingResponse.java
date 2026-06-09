@@ -8,13 +8,9 @@ import java.util.List;
 @Builder
 public record MeetingResponse(
         Long id,
-
-        Long hostId,
-
+        UserDto host,
         String title,
-
         String description,
-
         List<UserDto> participants
 ) {
 }
