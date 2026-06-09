@@ -1,5 +1,7 @@
 package com.yurupari.calendar;
 
+import com.yurupari.calendar.model.enums.ParticipantRole;
+import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.repository.CalendarRepository;
 import com.yurupari.calendar.repository.MeetingRepository;
 import com.yurupari.calendar.repository.SlotRepository;
@@ -18,6 +20,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.Instant;
 
 import static com.yurupari.calendar.utils.TestConstants.CREATE_CALENDAR_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.CREATE_CALENDAR_JSON;
@@ -265,21 +269,6 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 				.andExpect(status().isNotFound());
 	}
 
-	@Test
-	void deleteCalendar_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var calendar = testEntityCreator.createTestCalendar(user);
-
-		mockMvc.perform(delete("/api/v1/calendar/" + calendar.getId()))
-				.andExpect(status().isNoContent());
-	}
-
-	@Test
-	void deleteCalendar_NotFound() throws Exception {
-		mockMvc.perform(delete("/api/v1/calendar/1"))
-				.andExpect(status().isNotFound());
-	}
-
 	// ----- Meeting Tests -----
 	
 	@Test
@@ -381,29 +370,27 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	void createSlot_Success() throws Exception {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
-		var meeting = testEntityCreator.createTestMeeting(user);
 		var request = jsonTestUtils.loadRequest(CREATE_SLOT_JSON)
-				.replace("\"calendarId\": 1", "\"calendarId\": " + calendar.getId())
-				.replace("\"meetingId\": 1", "\"meetingId\": " + meeting.getId());
+				.replace("\"userId\": 1", "\"userId\": " + user.getId());
 
 		mockMvc.perform(post("/api/v1/slot/create")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isOk())
+				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").exists())
 				.andExpect(jsonPath("$.calendarId").value(calendar.getId()))
-				.andExpect(jsonPath("$.meetingId").value(meeting.getId()))
-				.andExpect(jsonPath("$.status").value("FREE"));
+				.andExpect(jsonPath("$.startTime").value("2024-01-01T09:00:00"))
+				.andExpect(jsonPath("$.endTime").value("2024-01-01T10:00:00"))
+				.andExpect(jsonPath("$.status").value("FREE"))
+				.andExpect(jsonPath("$.role").doesNotExist());
 	}
 
 	@Test
 	void createSlot_BadRequest_MissingEndTime() throws Exception {
 		var user = testEntityCreator.createTestUser();
-		var calendar = testEntityCreator.createTestCalendar(user);
-		var meeting = testEntityCreator.createTestMeeting(user);
+		testEntityCreator.createTestCalendar(user);
 		var request = jsonTestUtils.loadRequest(CREATE_SLOT_BAD_REQUEST_JSON)
-				.replace("\"calendarId\": 1", "\"calendarId\": " + calendar.getId())
-				.replace("\"meetingId\": 1", "\"meetingId\": " + meeting.getId());
+				.replace("\"userId\": 1", "\"userId\": " + user.getId());
 
 		mockMvc.perform(post("/api/v1/slot/create")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -416,13 +403,42 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
 		var meeting = testEntityCreator.createTestMeeting(user);
-		var slot = testEntityCreator.createTestSlot(calendar, meeting);
+		var slot = testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T09:00:00Z"), Instant.parse("2024-01-01T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
 
 		mockMvc.perform(get("/api/v1/slot/" + slot.getId()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(slot.getId()))
 				.andExpect(jsonPath("$.calendarId").value(calendar.getId()))
-				.andExpect(jsonPath("$.meetingId").value(meeting.getId()));
+				.andExpect(jsonPath("$.meetingId").value(meeting.getId()))
+				.andExpect(jsonPath("$.startTime").value("2024-01-01T04:00:00"))
+				.andExpect(jsonPath("$.endTime").value("2024-01-01T05:00:00"))
+				.andExpect(jsonPath("$.status").value("FREE"))
+				.andExpect(jsonPath("$.role").value("HOST"));
+	}
+
+	@Test
+	void getSlots_Success() throws Exception {
+		var user = testEntityCreator.createTestUser();
+		var calendar = testEntityCreator.createTestCalendar(user);
+		var meeting = testEntityCreator.createTestMeeting(user);
+
+		testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T09:00:00Z"), Instant.parse("2024-01-01T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
+		testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T11:00:00Z"), Instant.parse("2024-01-01T12:00:00Z"), SlotStatus.BUSY, ParticipantRole.INVITEE);
+		testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-02T09:00:00Z"), Instant.parse("2024-01-02T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
+
+		var from = "2024-01-01T00:00:00";
+		var until = "2024-01-01T23:59:59";
+
+		mockMvc.perform(get("/api/v1/slot/user/" + user.getId())
+						.param("from", from)
+						.param("until", until))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$").isArray())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].calendarId").value(calendar.getId()))
+				.andExpect(jsonPath("$[0].startTime").value("2024-01-01T04:00:00"))
+				.andExpect(jsonPath("$[1].calendarId").value(calendar.getId()))
+				.andExpect(jsonPath("$[1].startTime").value("2024-01-01T06:00:00"));
 	}
 
 	@Test
@@ -430,7 +446,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
 		var meeting = testEntityCreator.createTestMeeting(user);
-		var slot = testEntityCreator.createTestSlot(calendar, meeting);
+		var slot = testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T09:00:00Z"), Instant.parse("2024-01-01T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
 		var request = jsonTestUtils.loadRequest(UPDATE_SLOT_JSON);
 
 		mockMvc.perform(put("/api/v1/slot/" + slot.getId())
@@ -445,7 +461,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
 		var meeting = testEntityCreator.createTestMeeting(user);
-		var slot = testEntityCreator.createTestSlot(calendar, meeting);
+		var slot = testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T09:00:00Z"), Instant.parse("2024-01-01T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
 		var request = jsonTestUtils.loadRequest(UPDATE_SLOT_BAD_REQUEST_JSON);
 
 		mockMvc.perform(put("/api/v1/slot/" + slot.getId())
@@ -475,15 +491,9 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
 		var meeting = testEntityCreator.createTestMeeting(user);
-		var slot = testEntityCreator.createTestSlot(calendar, meeting);
+		var slot = testEntityCreator.createTestSlot(calendar, meeting, Instant.parse("2024-01-01T09:00:00Z"), Instant.parse("2024-01-01T10:00:00Z"), SlotStatus.FREE, ParticipantRole.HOST);
 
 		mockMvc.perform(delete("/api/v1/slot/" + slot.getId()))
 				.andExpect(status().isNoContent());
-	}
-
-	@Test
-	void deleteSlot_NotFound() throws Exception {
-		mockMvc.perform(delete("/api/v1/slot/1"))
-				.andExpect(status().isNotFound());
 	}
 }

@@ -6,14 +6,19 @@ import com.yurupari.calendar.model.entity.Calendar;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
 import com.yurupari.calendar.model.entity.User;
+import com.yurupari.calendar.model.enums.MeetingStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
+import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.CreateUserRequest;
+import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.model.request.UpdateUserRequest;
+import com.yurupari.calendar.model.response.SlotResponse;
 import com.yurupari.calendar.model.response.UserResponse;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 public class TestModelFactory {
 
@@ -36,7 +41,7 @@ public class TestModelFactory {
                 .build();
     }
 
-    public static Meeting createTestMeeting(Long id, String title, String description, User host, Status status) {
+    public static Meeting createTestMeeting(Long id, String title, String description, User host, MeetingStatus status) {
         return Meeting.builder()
                 .id(id)
                 .title(title)
@@ -100,6 +105,36 @@ public class TestModelFactory {
                 .lastName(lastName)
                 .email(email)
                 .calendarId(calendarId)
+                .build();
+    }
+
+    public static CreateSlotRequest createTestCreateSlotRequest(Long userId, String startTime, String endTime) {
+        return CreateSlotRequest.builder()
+                .userId(userId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .build();
+    }
+
+    public static UpdateSlotRequest createTestUpdateSlotRequest(Long meetingId, String startTime, String endTime, SlotStatus status, ParticipantRole role) {
+        return UpdateSlotRequest.builder()
+                .meetingId(meetingId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(status)
+                .role(role)
+                .build();
+    }
+
+    public static SlotResponse createTestSlotResponse(Long id, Long calendarId, Long meetingId, String startTime, String endTime, SlotStatus status, ParticipantRole role) {
+        return SlotResponse.builder()
+                .id(id)
+                .calendarId(calendarId)
+                .meetingId(meetingId)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(status)
+                .role(role)
                 .build();
     }
 }

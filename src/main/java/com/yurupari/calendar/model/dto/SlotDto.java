@@ -3,12 +3,12 @@ package com.yurupari.calendar.model.dto;
 import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
+@Builder
 public record SlotDto(
         Long id,
 

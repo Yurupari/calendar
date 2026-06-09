@@ -4,6 +4,10 @@ import com.yurupari.calendar.model.entity.Calendar;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
 import com.yurupari.calendar.model.entity.User;
+import com.yurupari.calendar.model.enums.MeetingStatus;
+import com.yurupari.calendar.model.enums.ParticipantRole;
+import com.yurupari.calendar.model.enums.SlotStatus;
+import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.repository.CalendarRepository;
 import com.yurupari.calendar.repository.MeetingRepository;
 import com.yurupari.calendar.repository.SlotRepository;
@@ -48,6 +52,7 @@ public class TestEntityCreator {
                 .host(host)
                 .title("Test Meeting")
                 .description("Description for test meeting")
+                .status(MeetingStatus.SCHEDULED)
                 .build());
     }
 
@@ -57,6 +62,24 @@ public class TestEntityCreator {
                 .meeting(meeting)
                 .startTime(Instant.now().plusSeconds(3600))
                 .endTime(Instant.now().plusSeconds(7200))
+                .build());
+    }
+
+    public Slot createTestSlot(
+            Calendar calendar,
+            Meeting meeting,
+            Instant startTime,
+            Instant endTime,
+            SlotStatus status,
+            ParticipantRole role
+    ) {
+        return slotRepository.save(Slot.builder()
+                .calendar(calendar)
+                .meeting(meeting)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(status)
+                .role(role)
                 .build());
     }
 }

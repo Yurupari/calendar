@@ -17,7 +17,7 @@ public interface MeetingMapper {
     MeetingDto toDto(Meeting entity);
 
     @Mapping(source = "hostId", target = "host.id")
-    @Mapping(target = "status", constant = "ACTIVE")
+    @Mapping(target = "status", constant = "SCHEDULED")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Meeting toEntity(MeetingDto dto);

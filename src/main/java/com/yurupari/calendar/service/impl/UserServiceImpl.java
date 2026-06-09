@@ -41,6 +41,8 @@ public class UserServiceImpl implements UserService {
                 .build();
         userValidator.validateUser(userDto);
 
+        log.info("Creating user: user={}, timezone={}", userDto, createUserRequest.timezone());
+
         return userRepository.findByEmail(userDto.email())
                 .map(u -> {
                     if (Status.ACTIVE.equals(u.getStatus())) {
@@ -85,6 +87,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(Long id) {
+        log.info("Getting user: id={}", id);
+
         return userRepository.findById(id)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))
                 .map(u -> {
@@ -103,6 +107,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserByEmail(String email) {
+        log.info("Getting user: email={}", email);
+
         return userRepository.findByEmail(email)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))
                 .map(u -> {
@@ -129,6 +135,8 @@ public class UserServiceImpl implements UserService {
                 .build();
         userValidator.validateUser(userDto);
 
+        log.info("Updating user: id={}, user={}", id, userDto);
+
         var user = userRepository.findById(id)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))
                 .orElseThrow(() -> new UserNotFoundException(id));
@@ -142,6 +150,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
+        log.info("Deleting user: id={}", id);
+
         var user = userRepository.findById(id)
                 .filter(u -> Status.ACTIVE.equals(u.getStatus()))
                 .orElseThrow(() -> new UserNotFoundException(id));

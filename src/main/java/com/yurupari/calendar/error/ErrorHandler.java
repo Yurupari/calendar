@@ -2,6 +2,8 @@ package com.yurupari.calendar.error;
 
 import com.yurupari.calendar.exception.CalendarNotFoundException;
 import com.yurupari.calendar.exception.InvalidFormatException;
+import com.yurupari.calendar.exception.SlotAlreadyExistsException;
+import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.exception.UserAlreadyExistsException;
 import com.yurupari.calendar.exception.UserNotFoundException;
 import com.yurupari.calendar.model.response.ErrorResponse;
@@ -25,6 +27,18 @@ public class ErrorHandler {
 
     @ExceptionHandler
     public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleSlotNotFoundException(SlotNotFoundException e) {
+        var errorResponse = buildErrorResponse(HttpStatus.NOT_FOUND, e.getMessage());
+        return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<ErrorResponse> handleSlotAlreadyExistsException(SlotAlreadyExistsException e) {
         var errorResponse = buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
         return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
     }

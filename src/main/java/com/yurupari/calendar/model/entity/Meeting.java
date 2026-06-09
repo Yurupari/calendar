@@ -1,6 +1,6 @@
 package com.yurupari.calendar.model.entity;
 
-import com.yurupari.calendar.model.enums.Status;
+import com.yurupari.calendar.model.enums.MeetingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,7 +19,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -48,8 +50,9 @@ public class Meeting {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    private MeetingStatus status = MeetingStatus.SCHEDULED;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

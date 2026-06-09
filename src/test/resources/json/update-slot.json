@@ -1,4 +1,5 @@
 {
+  "meetingId": 1,
   "startTime": "2024-01-01T10:00:00",
   "endTime": "2024-01-01T11:00:00",
   "status": "BUSY",

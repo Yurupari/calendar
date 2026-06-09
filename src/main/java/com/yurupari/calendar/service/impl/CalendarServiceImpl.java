@@ -9,6 +9,7 @@ import com.yurupari.calendar.service.CalendarService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class CalendarServiceImpl implements CalendarService {
     private final CalendarMapper calendarMapper;
 
     @Override
+    @Transactional
     public CalendarDto createCalendar(CalendarDto calendarDto) {
         var calendar = calendarMapper.toEntity(calendarDto);
         var savedCalendar = calendarRepository.save(calendar);
@@ -48,6 +50,7 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
+    @Transactional
     public CalendarDto activateCalendar(Long userId) {
         var calendar = calendarRepository.findByUserId(userId)
                 .orElseThrow(() -> new CalendarNotFoundException(
@@ -61,6 +64,7 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
+    @Transactional
     public void updateCalendar(Long userId, String timezone) {
         Optional.ofNullable(timezone).ifPresent(t -> {
             if (!t.isBlank()) {
@@ -80,6 +84,7 @@ public class CalendarServiceImpl implements CalendarService {
     }
 
     @Override
+    @Transactional
     public void deleteCalendarByUserId(Long userId) {
         var calendar = calendarRepository.findByUserId(userId)
                 .orElseThrow(() -> new CalendarNotFoundException(

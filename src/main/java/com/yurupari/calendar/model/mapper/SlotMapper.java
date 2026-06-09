@@ -18,8 +18,8 @@ public interface SlotMapper {
     SlotDto toDto(Slot entity);
 
     @Mapping(source = "calendarId", target = "calendar.id")
-    @Mapping(source = "meetingId", target = "meeting.id")
     @Mapping(target = "status", constant = "FREE")
+    @Mapping(target = "meeting", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Slot toEntity(SlotDto dto);
