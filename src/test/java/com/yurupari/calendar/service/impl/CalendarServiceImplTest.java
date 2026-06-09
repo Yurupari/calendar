@@ -1,13 +1,12 @@
 package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.CalendarNotFoundException;
+import com.yurupari.calendar.exception.InvalidFormatException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.entity.Calendar;
-import com.yurupari.calendar.model.entity.User;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.CalendarMapperImpl;
 import com.yurupari.calendar.repository.CalendarRepository;
-import com.yurupari.calendar.repository.UserRepository;
 import com.yurupari.calendar.utils.TestModelFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -180,13 +178,10 @@ class CalendarServiceImplTest {
             "''",
             "'   '"
     })
-    void updateCalendar_InvalidTimezone_NoUpdate(String timezone) {
-        timezone = timezone.equals("null") ? null : timezone;
-        calendarService.updateCalendar(1L, timezone);
+    void updateCalendar_InvalidTimezone_ThrowsInvalidFormatException(String timezone) {
+        var formattedTimezone = timezone.equals("null") ? null : timezone;
 
-        verify(calendarRepository, never()).findByUserId(anyLong());
-        verify(calendarMapper, never()).updateEntityFromDto(any(CalendarDto.class), any(Calendar.class));
-        verify(calendarRepository, never()).save(any(Calendar.class));
+        assertThrows(InvalidFormatException.class, () -> calendarService.updateCalendar(1L, formattedTimezone));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.CalendarNotFoundException;
+import com.yurupari.calendar.exception.InvalidFormatException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.CalendarMapper;
@@ -66,21 +67,23 @@ public class CalendarServiceImpl implements CalendarService {
     @Override
     @Transactional
     public void updateCalendar(Long userId, String timezone) {
-        Optional.ofNullable(timezone).ifPresent(t -> {
-            if (!t.isBlank()) {
-                var calendar = calendarRepository.findByUserId(userId)
-                        .orElseThrow(() -> new CalendarNotFoundException(
-                                String.format("Calendar not found: userId=%s", userId)
-                        ));
+        Optional.ofNullable(timezone)
+                .filter(t -> !t.isBlank())
+                .ifPresentOrElse(
+                        t -> {
+                            var calendar = calendarRepository.findByUserId(userId)
+                                    .orElseThrow(() -> new CalendarNotFoundException(
+                                            String.format("Calendar not found: userId=%s", userId)
+                                    ));
 
-                var calendarDto = CalendarDto.builder()
-                        .timezone(t)
-                        .build();
-                calendarMapper.updateEntityFromDto(calendarDto, calendar);
+                            var calendarDto = CalendarDto.builder()
+                                    .timezone(t)
+                                    .build();
+                            calendarMapper.updateEntityFromDto(calendarDto, calendar);
 
-                calendarRepository.save(calendar);
-            }
-        });
+                            calendarRepository.save(calendar);
+                            },
+                        () -> { throw new InvalidFormatException("Invalid timezone format"); });
     }
 
     @Override

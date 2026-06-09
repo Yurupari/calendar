@@ -190,31 +190,6 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	}
 
 	// ----- Calendar Tests -----
-	
-	@Test
-	void createCalendar_Success() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var request = jsonTestUtils.loadRequest(CREATE_CALENDAR_JSON).replace("\"userId\": 1", "\"userId\": " + user.getId());
-
-		mockMvc.perform(post("/api/v1/calendar/create")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(request))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.id").exists())
-				.andExpect(jsonPath("$.timezone").value("America/New_York"))
-				.andExpect(jsonPath("$.userId").value(user.getId()));
-	}
-
-	@Test
-	void createCalendar_BadRequest_MissingTimezone() throws Exception {
-		var user = testEntityCreator.createTestUser();
-		var request = jsonTestUtils.loadRequest(CREATE_CALENDAR_BAD_REQUEST_JSON).replace("\"userId\": 1", "\"userId\": " + user.getId());
-
-		mockMvc.perform(post("/api/v1/calendar/create")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(request))
-				.andExpect(status().isBadRequest());
-	}
 
 	@Test
 	void getCalendar_Success() throws Exception {
@@ -240,7 +215,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		var calendar = testEntityCreator.createTestCalendar(user);
 		var request = jsonTestUtils.loadRequest(UPDATE_CALENDAR_JSON);
 
-		mockMvc.perform(put("/api/v1/calendar/" + calendar.getId())
+		mockMvc.perform(put("/api/v1/calendar/user/" + user.getId())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
 				.andExpect(status().isOk())
@@ -250,10 +225,9 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	@Test
 	void updateCalendar_BadRequest_EmptyTimezone() throws Exception {
 		var user = testEntityCreator.createTestUser();
-		var calendar = testEntityCreator.createTestCalendar(user);
 		var request = jsonTestUtils.loadRequest(UPDATE_CALENDAR_BAD_REQUEST_JSON);
 
-		mockMvc.perform(put("/api/v1/calendar/" + calendar.getId())
+		mockMvc.perform(put("/api/v1/calendar/user/" + user.getId())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
 				.andExpect(status().isBadRequest());
@@ -263,7 +237,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	void updateCalendar_NotFound() throws Exception {
 		var request = jsonTestUtils.loadRequest(UPDATE_CALENDAR_JSON);
 
-		mockMvc.perform(put("/api/v1/calendar/1")
+		mockMvc.perform(put("/api/v1/calendar/user/1")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
 				.andExpect(status().isNotFound());
