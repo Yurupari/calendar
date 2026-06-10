@@ -11,12 +11,14 @@ import com.yurupari.calendar.model.enums.MeetingStatus;
 import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.mapper.MeetingMapper;
+import com.yurupari.calendar.model.mapper.UserMapper;
 import com.yurupari.calendar.model.request.CreateMeetingRequest;
 import com.yurupari.calendar.model.request.UpdateMeetingRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.model.response.MeetingResponse;
 import com.yurupari.calendar.model.response.SlotResponse;
 import com.yurupari.calendar.repository.MeetingRepository;
+import com.yurupari.calendar.service.CalendarService;
 import com.yurupari.calendar.service.MeetingService;
 import com.yurupari.calendar.service.SlotService;
 import com.yurupari.calendar.service.UserService;
@@ -43,11 +45,15 @@ public class MeetingServiceImpl implements MeetingService {
 
     private final UserService userService;
 
+    private final CalendarService calendarService;
+
     private final MeetingValidator meetingValidator;
 
     private final MeetingRepository meetingRepository;
 
     private final MeetingMapper meetingMapper;
+
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -101,9 +107,9 @@ public class MeetingServiceImpl implements MeetingService {
 
         var meetingId = meeting.getId();
         var users = userService.getUsersByMeetingId(meetingId);
-        var hostId = meeting.getHost().getId();
-        var host = getHost(hostId, users);
-        var timezone = userService.getUserById(hostId).timezone();
+        var host = userMapper.toDto(meeting.getHost());
+        var hostId = host.id();
+        var timezone = calendarService.getCalendarByUserId(hostId).timezone();
         var participants = getParticipants(hostId, users);
 
         return MeetingResponse.builder()

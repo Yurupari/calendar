@@ -9,6 +9,7 @@ import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.exception.UserAlreadyExistsException;
 import com.yurupari.calendar.exception.UserNotFoundException;
 import com.yurupari.calendar.model.response.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.time.LocalDateTime;
 
 @ControllerAdvice
+@Slf4j
 public class ErrorHandler {
 
     @ExceptionHandler
@@ -88,6 +90,8 @@ public class ErrorHandler {
     }
 
     private ErrorResponse buildErrorResponse(HttpStatus httpStatus, String message) {
+        log.error(message);
+
         return ErrorResponse.builder()
                 .httpStatus(httpStatus)
                 .timestamp(LocalDateTime.now())

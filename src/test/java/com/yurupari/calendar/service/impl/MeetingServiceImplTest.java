@@ -11,9 +11,11 @@ import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.MeetingMapperImpl;
+import com.yurupari.calendar.model.mapper.UserMapperImpl;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.model.response.UserResponse;
 import com.yurupari.calendar.repository.MeetingRepository;
+import com.yurupari.calendar.service.CalendarService;
 import com.yurupari.calendar.service.SlotService;
 import com.yurupari.calendar.service.UserService;
 import com.yurupari.calendar.utils.TestModelFactory;
@@ -60,6 +62,9 @@ class MeetingServiceImplTest {
     private UserService userService;
 
     @Mock
+    private CalendarService calendarService;
+
+    @Mock
     private MeetingValidator meetingValidator;
 
     @Mock
@@ -67,6 +72,9 @@ class MeetingServiceImplTest {
 
     @Spy
     private MeetingMapperImpl meetingMapper = new MeetingMapperImpl();
+
+    @Spy
+    private UserMapperImpl userMapper = new UserMapperImpl();
 
     @Test
     void createMeeting_Success_NoParticipants() {
@@ -259,10 +267,7 @@ class MeetingServiceImplTest {
         var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
         when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto));
 
-        var hostDetails = TestModelFactory.createTestUserResponse(
-                hostId, "Host", "User", "host@example.com", 1L, "UTC"
-        );
-        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+        when(calendarService.getCalendarByUserId(anyLong())).thenReturn(TestModelFactory.createTestCalendarDto(1L, "UTC", hostId));
 
         var slotInformation = TestModelFactory.createTestSlotInformation(
                 1L, 1L, ParticipantRole.HOST, "2026-06-10T10:00:00", "2026-06-10T11:00:00");
@@ -295,26 +300,6 @@ class MeetingServiceImplTest {
     }
 
     @Test
-    void getMeetingById_HostNotFound_ThrowsException() {
-        Long meetingId = 1L;
-        Long hostId = 10L;
-        var title = "Test Meeting";
-        var description = "Description";
-
-        var meetingEntity = TestModelFactory.createTestMeeting(
-                meetingId, title, description, TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE), MeetingStatus.SCHEDULED
-        );
-        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meetingEntity));
-
-        when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of()); // Host not found in the list
-
-        assertThrows(UserNotFoundException.class, () -> meetingService.getMeetingById(meetingId));
-
-        verify(meetingRepository, times(1)).findById(meetingId);
-        verify(userService, times(1)).getUsersByMeetingId(meetingId);
-    }
-
-    @Test
     void getMeetingById_Success_WithFullWorkflow() {
         Long meetingId = 1L;
         Long hostId = 10L;
@@ -331,14 +316,7 @@ class MeetingServiceImplTest {
         var participantUserDto = TestModelFactory.createTestUserDto(participantId, "Participant", "User", "part@example.com");
         when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto, participantUserDto));
 
-        var hostDetails = UserResponse.builder()
-                .id(hostId)
-                .name("Host")
-                .lastName("User")
-                .email("host@example.com")
-                .timezone(timezone)
-                .build();
-        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+        when(calendarService.getCalendarByUserId(anyLong())).thenReturn(TestModelFactory.createTestCalendarDto(1L, timezone, hostId));
 
         var hostSlotInfo = SlotInformationDto.builder()
                 .id(100L)
@@ -362,7 +340,7 @@ class MeetingServiceImplTest {
 
         verify(meetingRepository, times(1)).findById(meetingId);
         verify(userService, times(1)).getUsersByMeetingId(meetingId);
-        verify(userService, times(1)).getUserById(hostId);
+        verify(calendarService, times(1)).getCalendarByUserId(hostId);
         verify(slotService, times(1)).getSlotInformation(meetingId, timezone);
     }
 
@@ -379,14 +357,7 @@ class MeetingServiceImplTest {
         var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
         when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto));
 
-        var hostDetails = UserResponse.builder()
-                .id(hostId)
-                .name("Host")
-                .lastName("User")
-                .email("host@example.com")
-                .timezone(timezone)
-                .build();
-        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+        when(calendarService.getCalendarByUserId(anyLong())).thenReturn(TestModelFactory.createTestCalendarDto(1L, timezone, hostId));
         when(slotService.getSlotInformation(meetingId, timezone)).thenReturn(List.of());
 
         assertThrows(SlotNotFoundException.class, () -> meetingService.getMeetingById(meetingId));
