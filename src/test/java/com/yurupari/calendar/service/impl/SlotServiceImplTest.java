@@ -2,6 +2,7 @@ package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.CalendarNotFoundException;
 import com.yurupari.calendar.exception.SlotAlreadyExistsException;
+import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
@@ -30,15 +31,21 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -368,7 +375,8 @@ class SlotServiceImplTest {
         var user = createTestUser(userId);
         var calendar = createTestCalendar(calendarId, user);
         var meeting = createTestMeeting(meetingId, user);
-        var existingSlot = createTestSlot(slotId,
+        var existingSlot = createTestSlot(
+                slotId,
                 calendar,
                 null,
                 Instant.parse("2026-01-01T09:00:00Z"),
@@ -454,22 +462,187 @@ class SlotServiceImplTest {
     @Test
     void deleteSlot_Success() {
         Long slotId = 1L;
+        var slot = createTestSlot(
+                slotId,
+                mock(Calendar.class),
+                null,
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
 
+        when(slotRepository.findById(anyLong())).thenReturn(Optional.of(slot));
         doNothing().when(slotRepository).deleteById(slotId);
 
         slotService.deleteSlot(slotId);
 
-        verify(slotRepository, times(1)).deleteById(slotId);
+        verify(slotRepository, times(1)).findById(anyLong());
+        verify(slotRepository, times(1)).deleteById(anyLong());
     }
 
     @Test
-    void deleteSlot_NotFound_NoException() {
+    void deleteSlot_MeetingAssociated_ThrowsException() {
         Long slotId = 1L;
 
-        doNothing().when(slotRepository).deleteById(slotId);
+        var slot = createTestSlot(
+                slotId,
+                mock(Calendar.class),
+                mock(Meeting.class),
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
+        when(slotRepository.findById(anyLong())).thenReturn(Optional.of(slot));
 
-        slotService.deleteSlot(slotId);
+        assertThrows(SlotConflictException.class, () ->slotService.deleteSlot(slotId));
 
-        verify(slotRepository, times(1)).deleteById(slotId);
+        verify(slotRepository, times(1)).findById(anyLong());
+    }
+
+    @Test
+    void deleteSlot_NotFound_ThrowsException() {
+        Long slotId = 1L;
+
+        when(slotRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(SlotNotFoundException.class, () ->slotService.deleteSlot(slotId));
+
+        verify(slotRepository, times(1)).findById(anyLong());
+    }
+
+    @Test
+    void getSlots_MultipleUserIds_Success() {
+        var userIds = Set.of(1L, 2L);
+        var fromStr = "2026-01-01T00:00:00";
+        var untilStr = "2026-01-01T23:59:59";
+        var timezone = "America/New_York";
+        var fromInstant = Instant.parse("2026-01-01T05:00:00Z");
+        var untilInstant = Instant.parse("2026-01-02T04:59:59Z");
+
+        var user1 = createTestUser(1L);
+        var user2 = createTestUser(2L);
+
+        var calendar1 = createTestCalendar(10L, user1);
+        var calendar2 = createTestCalendar(11L, user2);
+
+        var calendarDto1 = createTestCalendarDto(10L, 1L);
+        var calendarDto2 = createTestCalendarDto(11L, 2L);
+        var calendarsList = List.of(calendarDto1, calendarDto2);
+
+        var slot1 = createTestSlot(
+                100L,
+                calendar1,
+                null,
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
+        var slot2 = createTestSlot(
+                101L,
+                calendar2,
+                null,
+                Instant.parse("2026-01-01T11:00:00Z"),
+                Instant.parse("2026-01-01T12:00:00Z"));
+        var foundSlots = List.of(slot1, slot2);
+
+        when(calendarService.getCalendarsByUserIds(userIds)).thenReturn(calendarsList);
+        when(timeUtil.parseIsoStringToInstant(fromStr, timezone)).thenReturn(fromInstant);
+        when(timeUtil.parseIsoStringToInstant(untilStr, timezone)).thenReturn(untilInstant);
+        when(slotRepository.findSlotsWithOptionalStatusInCalendars(Set.of(10L, 11L), fromInstant, untilInstant, SlotStatus.FREE))
+                .thenReturn(foundSlots);
+        when(timeUtil.parseInstantToIsoString(any(Instant.class), anyString())).thenReturn(
+                "2026-01-01T04:00:00", "2026-01-01T05:00:00",
+                "2026-01-01T06:00:00", "2026-01-01T07:00:00"
+        );
+
+        var result = slotService.getSlots(userIds, fromStr, untilStr, timezone, SlotStatus.FREE);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.containsKey(1L));
+        assertTrue(result.containsKey(2L));
+        assertEquals(1, result.get(1L).size());
+        assertEquals(1, result.get(2L).size());
+        assertEquals(100L, result.get(1L).getFirst().id());
+        assertEquals(101L, result.get(2L).getFirst().id());
+
+        verify(calendarService, times(1)).getCalendarsByUserIds(userIds);
+        verify(timeUtil, times(1)).parseIsoStringToInstant(fromStr, timezone);
+        verify(timeUtil, times(1)).parseIsoStringToInstant(untilStr, timezone);
+        verify(slotRepository, times(1))
+                .findSlotsWithOptionalStatusInCalendars(anySet(), any(), any(), any());
+        verify(timeUtil, times(4)).parseInstantToIsoString(any(Instant.class), anyString());
+    }
+
+    @Test
+    void getSlotInformation_Success() {
+        Long meetingId = 50L;
+        String targetTimezone = "Europe/Paris";
+        var user = createTestUser(1L);
+        var calendar = createTestCalendar(10L, user);
+        var meeting = createTestMeeting(meetingId, user);
+
+        var slot1 = createTestSlot(
+                100L,
+                calendar,
+                meeting,
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
+        var slot2 = createTestSlot(
+                101L,
+                calendar,
+                meeting,
+                Instant.parse("2026-01-01T14:00:00Z"),
+                Instant.parse("2026-01-01T15:00:00Z"));
+
+        when(slotRepository.findByMeetingId(meetingId)).thenReturn(List.of(slot1, slot2));
+        when(timeUtil.parseInstantToIsoString(any(Instant.class), eq(targetTimezone))).thenReturn(
+                "2026-01-01T10:00:00", "2026-01-01T11:00:00",
+                "2026-01-01T15:00:00", "2026-01-01T16:00:00"
+        );
+
+        var result = slotService.getSlotInformation(meetingId, targetTimezone);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(100L, result.get(0).id());
+        assertEquals(10L, result.get(0).calendarId());
+        assertEquals(101L, result.get(1).id());
+
+        verify(slotRepository, times(1)).findByMeetingId(meetingId);
+        verify(timeUtil, times(4)).parseInstantToIsoString(any(Instant.class), eq(targetTimezone));
+    }
+
+    @Test
+    void updateSlots_BulkSuccess() {
+        Set<Long> slotIds = Set.of(100L, 101L);
+        Long meetingId = 99L;
+        var updateSlotRequest = TestModelFactory.createTestUpdateSlotRequest(
+                meetingId,
+                null,
+                null,
+                SlotStatus.BUSY,
+                ParticipantRole.INVITEE
+        );
+
+        var user = createTestUser(1L);
+        var calendar = createTestCalendar(10L, user);
+        var slot1 = createTestSlot(
+                100L,
+                calendar,
+                null,
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
+        var slot2 = createTestSlot(
+                101L,
+                calendar,
+                null,
+                Instant.parse("2026-01-01T11:00:00Z"),
+                Instant.parse("2026-01-01T12:00:00Z"));
+        var existingSlotsList = List.of(slot1, slot2);
+
+        when(slotRepository.findAllById(slotIds)).thenReturn(existingSlotsList);
+        when(slotRepository.saveAll(anyList())).thenReturn(existingSlotsList);
+
+        slotService.updateSlots(slotIds, updateSlotRequest);
+
+        verify(slotRepository, times(1)).findAllById(slotIds);
+        verify(slotMapper, times(2)).updateEntityFromDto(any(SlotDto.class), any(Slot.class));
+        verify(slotRepository, times(1)).saveAll(existingSlotsList);
     }
 }

@@ -1,4 +1,9 @@
 {
-  "title": "Daily Standup",
-  "description": "Daily team standup meeting"
+  "timezone": "UTC",
+  "title": "Updated Project Sync",
+  "description": "Updated weekly project synchronization meeting",
+  "participants": [
+    2,
+    3
+  ]
 }

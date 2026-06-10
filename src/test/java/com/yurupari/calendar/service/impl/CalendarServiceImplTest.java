@@ -17,11 +17,14 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -220,5 +223,53 @@ class CalendarServiceImplTest {
 
         verify(calendarRepository, times(1)).findByUserId(anyLong());
         verify(calendarRepository, never()).save(any(Calendar.class));
+    }
+
+    @Test
+    void getCalendarsByUserIds_Success() {
+        var userIds = Set.of(1L, 2L);
+
+        var user1 = TestModelFactory.createTestUser(1L, "john.doe@example.com", Status.ACTIVE);
+        var user2 = TestModelFactory.createTestUser(2L, "jane.doe@example.com", Status.ACTIVE);
+
+        var calendarEntity1 = TestModelFactory.createTestCalendar(10L, "America/New_York", user1, Status.ACTIVE);
+        var calendarEntity2 = TestModelFactory.createTestCalendar(11L, "Europe/London", user2, Status.ACTIVE);
+        var mockEntities = List.of(calendarEntity1, calendarEntity2);
+
+        var dto1 = TestModelFactory.createTestCalendarDto(10L, "America/New_York", 1L);
+        var dto2 = TestModelFactory.createTestCalendarDto(11L, "Europe/London", 2L);
+
+        when(calendarRepository.findByUserIdIn(userIds)).thenReturn(mockEntities);
+        when(calendarMapper.toDto(any(Calendar.class))).thenReturn(dto1, dto2);
+
+        var result = calendarService.getCalendarsByUserIds(userIds);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        assertEquals(10L, result.getFirst().id());
+        assertEquals("America/New_York", result.getFirst().timezone());
+        assertEquals(1L, result.getFirst().userId());
+
+        assertEquals(11L, result.get(1).id());
+        assertEquals("Europe/London", result.get(1).timezone());
+        assertEquals(2L, result.get(1).userId());
+
+        verify(calendarRepository, times(1)).findByUserIdIn(userIds);
+        verify(calendarMapper, times(2)).toDto(any(Calendar.class));
+    }
+
+    @Test
+    void getCalendarsByUserIds_EmptySet_ReturnsEmptyList() {
+        Set<Long> emptyUserIds = Set.of();
+        when(calendarRepository.findByUserIdIn(emptyUserIds)).thenReturn(List.of());
+
+        var result = calendarService.getCalendarsByUserIds(emptyUserIds);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(calendarRepository, times(1)).findByUserIdIn(emptyUserIds);
+        verify(calendarMapper, never()).toDto(any(Calendar.class));
     }
 }

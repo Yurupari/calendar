@@ -1,10 +1,14 @@
 package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.SlotAlreadyExistsException;
+import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
+import com.yurupari.calendar.model.dto.SlotInformationDto;
+import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
+import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.mapper.SlotMapper;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
@@ -22,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -128,6 +133,21 @@ public class SlotServiceImpl implements SlotService {
     }
 
     @Override
+    public List<SlotInformationDto> getSlotInformation(Long meetingId, String timezone) {
+        log.info("Getting slot information: meetingId={}", meetingId);
+
+        return slotRepository.findByMeetingId(meetingId).stream()
+                .map(slot -> SlotInformationDto.builder()
+                        .id(slot.getId())
+                        .calendarId(slot.getCalendar().getId())
+                        .role(slot.getRole())
+                        .startTime(timeUtil.parseInstantToIsoString(slot.getStartTime(), timezone))
+                        .endTime(timeUtil.parseInstantToIsoString(slot.getEndTime(), timezone))
+                        .build())
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void updateSlot(Long id, UpdateSlotRequest updateSlotRequest) {
         log.info("Updating slot: id={}, request={}", id, updateSlotRequest);
@@ -179,16 +199,27 @@ public class SlotServiceImpl implements SlotService {
     public void deleteSlot(Long id) {
         log.info("Deleting slot: id={}", id);
 
+        var slot = slotRepository.findById(id)
+                .orElseThrow(() -> new SlotNotFoundException(id));
+
+        if (Optional.ofNullable(slot.getMeeting()).isPresent()) {
+            throw new SlotConflictException(id, slot.getMeeting().getId());
+        }
+
         slotRepository.deleteById(id);
     }
 
     private SlotResponse buildSlotResponse(Slot slot) {
         var timezone = slot.getCalendar().getTimezone();
 
+        var meetingId = Optional.ofNullable(slot.getMeeting())
+                .map(Meeting::getId)
+                .orElse(null);
+
         return SlotResponse.builder()
                 .id(slot.getId())
                 .calendarId(slot.getCalendar().getId())
-                .meetingId(slot.getMeeting().getId())
+                .meetingId(meetingId)
                 .startTime(timeUtil.parseInstantToIsoString(slot.getStartTime(), timezone))
                 .endTime(timeUtil.parseInstantToIsoString(slot.getEndTime(), timezone))
                 .status(slot.getStatus())

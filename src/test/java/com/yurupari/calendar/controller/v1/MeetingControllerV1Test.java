@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -89,5 +91,39 @@ class MeetingControllerV1Test {
         assertThrows(MeetingNotFoundException.class, () -> meetingController.getMeetingById(1L));
 
         verify(meetingService, times(1)).getMeetingById(1L);
+    }
+
+    @Test
+    void updateMeeting_Success() {
+        var request = TestModelFactory.createTestUpdateMeetingRequest(
+                "Updated Test Meeting",
+                "Updated Description",
+                List.of(2L, 3L),
+                "UTC");
+
+        doNothing().when(meetingService).updateMeeting(anyLong(), any());
+
+        var responseEntity = meetingController.updateUser(1L, request);
+
+        assertNotNull(responseEntity);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("Meeting updated successfully", responseEntity.getBody());
+
+        verify(meetingService, times(1)).updateMeeting(1L, request);
+    }
+
+    @Test
+    void updateMeeting_NotFound_ThrowsException() {
+        var request = TestModelFactory.createTestUpdateMeetingRequest(
+                "Updated Test Meeting",
+                "Updated Description",
+                List.of(2L, 3L),
+                "UTC");
+
+        doThrow(new MeetingNotFoundException(1L)).when(meetingService).updateMeeting(anyLong(), any());
+
+        assertThrows(MeetingNotFoundException.class, () -> meetingController.updateUser(1L, request));
+
+        verify(meetingService, times(1)).updateMeeting(1L, request);
     }
 }

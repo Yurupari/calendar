@@ -1,6 +1,6 @@
 package com.yurupari.calendar.validator;
 
-import com.yurupari.calendar.exception.ParticipantSlotConflictException;
+import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.response.SlotResponse;
 import com.yurupari.calendar.utils.TestModelFactory;
@@ -61,7 +61,7 @@ class MeetingValidatorTest {
                 2L, List.of()
         );
 
-        var exception = assertThrows(ParticipantSlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertEquals("Some users have busy slots: users=[2]", exception.getMessage());
     }
 
@@ -80,7 +80,7 @@ class MeetingValidatorTest {
                 3L, List.of()
         );
 
-        var exception = assertThrows(ParticipantSlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertTrue(exception.getMessage().contains("Some users have busy slots: users=["));
     }
 
@@ -106,7 +106,7 @@ class MeetingValidatorTest {
                         null))
         );
 
-        var exception = assertThrows(ParticipantSlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertEquals("Some users have busy slots: users=[2]", exception.getMessage());
     }
 

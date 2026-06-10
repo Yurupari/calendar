@@ -11,7 +11,9 @@ public class TestConstants {
     public static final String UPDATE_CALENDAR_BAD_REQUEST_JSON = "json/update-calendar-bad-request.json";
 
     public static final String CREATE_MEETING_JSON = "json/create-meeting.json";
+    public static final String UPDATE_MEETING_JSON = "json/update-meeting.json";
     public static final String CREATE_MEETING_BAD_REQUEST_JSON = "json/create-meeting-bad-request.json";
+    public static final String UPDATE_MEETING_BAD_REQUEST_JSON = "json/update-meeting-bad-request.json";
 
     public static final String CREATE_SLOT_JSON = "json/create-slot.json";
     public static final String UPDATE_SLOT_JSON = "json/update-slot.json";

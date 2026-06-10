@@ -64,6 +64,7 @@ public class UserServiceImpl implements UserService {
                             .lastName(savedUser.getLastName())
                             .email(savedUser.getEmail())
                             .calendarId(existingCalendarDto.id())
+                            .timezone(existingCalendarDto.timezone())
                             .build();
                 })
                 .orElseGet(() -> {
@@ -83,6 +84,7 @@ public class UserServiceImpl implements UserService {
                             .lastName(savedUser.getLastName())
                             .email(savedUser.getEmail())
                             .calendarId(savedCalendarDto.id())
+                            .timezone(savedCalendarDto.timezone())
                             .build();
                 });
     }
@@ -102,6 +104,7 @@ public class UserServiceImpl implements UserService {
                             .lastName(u.getLastName())
                             .email(u.getEmail())
                             .calendarId(calendarDto.id())
+                            .timezone(calendarDto.timezone())
                             .build();
                 })
                 .orElseThrow(() -> new UserNotFoundException(id));
@@ -122,6 +125,7 @@ public class UserServiceImpl implements UserService {
                             .lastName(u.getLastName())
                             .email(u.getEmail())
                             .calendarId(calendarDto.id())
+                            .timezone(calendarDto.timezone())
                             .build();
                 })
                 .orElseThrow(() -> new UserNotFoundException(email));
@@ -140,7 +144,7 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> getUsersByMeetingId(Long meetingId) {
         log.info("Getting users: meetingId={}", meetingId);
 
-        return userRepository.findParticipantsByMeetingId(meetingId).stream()
+        return userRepository.findUsersByMeetingId(meetingId).stream()
                 .map(userMapper::toDto)
                 .toList();
     }

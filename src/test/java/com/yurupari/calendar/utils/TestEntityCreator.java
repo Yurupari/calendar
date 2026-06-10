@@ -73,6 +73,17 @@ public class TestEntityCreator {
                 .build());
     }
 
+    public Slot createTestSlot(Calendar calendar, Meeting meeting, ParticipantRole role) {
+        return slotRepository.save(Slot.builder()
+                .calendar(calendar)
+                .meeting(meeting)
+                .startTime(Instant.now().plusSeconds(3600))
+                .endTime(Instant.now().plusSeconds(7200))
+                .status(SlotStatus.BUSY)
+                .role(role)
+                .build());
+    }
+
     public Slot createTestSlot(
             Calendar calendar,
             Meeting meeting,

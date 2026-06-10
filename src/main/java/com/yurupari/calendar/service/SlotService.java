@@ -1,5 +1,7 @@
 package com.yurupari.calendar.service;
 
+import com.yurupari.calendar.model.dto.SlotInformationDto;
+import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
@@ -17,6 +19,8 @@ public interface SlotService {
     List<SlotResponse> getSlots(Long userId, String from, String until, SlotStatus status);
 
     Map<Long, List<SlotResponse>> getSlots(Set<Long> userIds, String from, String until, String timezone, SlotStatus status);
+
+    List<SlotInformationDto> getSlotInformation(Long meetingId, String timezone);
 
     void updateSlot(Long id, UpdateSlotRequest updateSlotRequest);
 

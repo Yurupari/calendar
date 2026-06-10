@@ -39,7 +39,7 @@ class UserControllerV1Test {
         var createUserRequest = TestModelFactory.createTestCreateUserRequest(
                 "John", "Doe", "john.doe@example.com", "UTC");
         var userResponse = TestModelFactory.createTestUserResponse(
-                1L, "John", "Doe", "john.doe@example.com", 10L);
+                1L, "John", "Doe", "john.doe@example.com", 10L, "UTC");
 
         when(userService.createUser(any(CreateUserRequest.class))).thenReturn(userResponse);
 
@@ -56,7 +56,7 @@ class UserControllerV1Test {
     @Test
     void getUserById_Success() {
         var userResponse = TestModelFactory.createTestUserResponse(
-                1L, "John", "Doe", "john.doe@example.com", 10L);
+                1L, "John", "Doe", "john.doe@example.com", 10L, "UTC");
 
         when(userService.getUserById(anyLong())).thenReturn(userResponse);
 
@@ -82,7 +82,7 @@ class UserControllerV1Test {
     @Test
     void getUserByEmail_Success() {
         var userResponse = TestModelFactory.createTestUserResponse(
-                1L, "John", "Doe", "john.doe@example.com", 10L);
+                1L, "John", "Doe", "john.doe@example.com", 10L, "UTC");
 
         when(userService.getUserByEmail(anyString())).thenReturn(userResponse);
 

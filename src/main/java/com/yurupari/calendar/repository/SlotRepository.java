@@ -1,6 +1,7 @@
 package com.yurupari.calendar.repository;
 
 import com.yurupari.calendar.model.entity.Slot;
+import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -44,4 +45,6 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
             Instant startTime,
             Instant endTime,
             SlotStatus status);
+
+    List<Slot> findByMeetingId(Long meetingId);
 }

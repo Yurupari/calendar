@@ -20,5 +20,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
         JOIN Slot s ON c.id = s.calendar.id
         WHERE s.meeting.id = :meetingId
     """)
-    List<User> findParticipantsByMeetingId(@Param("meetingId") Long meetingId);
+    List<User> findUsersByMeetingId(@Param("meetingId") Long meetingId);
 }

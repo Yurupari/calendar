@@ -3,7 +3,7 @@ package com.yurupari.calendar.error;
 import com.yurupari.calendar.exception.CalendarNotFoundException;
 import com.yurupari.calendar.exception.InvalidFormatException;
 import com.yurupari.calendar.exception.MeetingNotFoundException;
-import com.yurupari.calendar.exception.ParticipantSlotConflictException;
+import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotAlreadyExistsException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.exception.UserAlreadyExistsException;
@@ -46,7 +46,7 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler
-    public ResponseEntity<ErrorResponse> handleParticipantSlotConflictException(ParticipantSlotConflictException e) {
+    public ResponseEntity<ErrorResponse> handleParticipantSlotConflictException(SlotConflictException e) {
         var errorResponse = buildErrorResponse(HttpStatus.CONFLICT, e.getMessage());
         return new ResponseEntity<>(errorResponse, errorResponse.httpStatus());
     }

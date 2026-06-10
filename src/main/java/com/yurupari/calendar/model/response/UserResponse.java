@@ -8,6 +8,7 @@ public record UserResponse(
         String name,
         String lastName,
         String email,
-        Long calendarId
+        Long calendarId,
+        String timezone
 ) {
 }

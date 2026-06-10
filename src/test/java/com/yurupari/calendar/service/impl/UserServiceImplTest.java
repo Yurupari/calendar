@@ -20,11 +20,13 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -77,6 +79,7 @@ class UserServiceImplTest {
         assertNotNull(userResponse.lastName());
         assertNotNull(userResponse.email());
         assertNotNull(userResponse.calendarId());
+        assertEquals("UTC", userResponse.timezone());
         assertEquals(10L, userResponse.calendarId());
 
         verify(userValidator, times(1)).validateUser(any(UserDto.class));
@@ -131,6 +134,7 @@ class UserServiceImplTest {
         assertEquals(Status.ACTIVE, updatedUser.getStatus());
         assertEquals(1L, userResponse.id());
         assertEquals(10L, userResponse.calendarId());
+        assertEquals("UTC", userResponse.timezone());
 
         verify(userValidator, times(1)).validateUser(any(UserDto.class));
         verify(userRepository, times(1)).findByEmail(anyString());
@@ -156,6 +160,7 @@ class UserServiceImplTest {
         assertEquals("Doe", userResponse.lastName());
         assertEquals("john.doe@example.com", userResponse.email());
         assertEquals(10L, userResponse.calendarId());
+        assertEquals("UTC", userResponse.timezone());
 
         verify(userRepository, times(1)).findById(anyLong());
         verify(calendarService, times(1)).getCalendarByUserId(anyLong());
@@ -198,6 +203,7 @@ class UserServiceImplTest {
         assertEquals("Doe", userResponse.lastName());
         assertEquals("john.doe@example.com", userResponse.email());
         assertEquals(10L, userResponse.calendarId());
+        assertEquals("UTC", userResponse.timezone());
 
         verify(userRepository, times(1)).findByEmail(anyString());
         verify(calendarService, times(1)).getCalendarByUserId(anyLong());
@@ -322,5 +328,85 @@ class UserServiceImplTest {
         verify(userRepository, times(1)).findById(anyLong());
         verify(userRepository, never()).save(any(User.class));
         verify(calendarService, never()).deleteCalendarByUserId(anyLong());
+    }
+
+    @Test
+    void getUsers_Success() {
+        var userIds = List.of(1L, 2L);
+        var user1 = TestModelFactory.createTestUser(1L, "john.doe@example.com", Status.ACTIVE);
+        var user2 = TestModelFactory.createTestUser(2L, "jane.doe@example.com", Status.ACTIVE);
+        var userEntities = List.of(user1, user2);
+        var userDto1 = TestModelFactory.createTestUserDto(1L, "John", "Doe", "john.doe@example.com");
+        var userDto2 = TestModelFactory.createTestUserDto(2L, "Jane", "Doe", "jane.doe@example.com");
+
+        when(userRepository.findAllById(userIds)).thenReturn(userEntities);
+        when(userMapper.toDto(any(User.class))).thenReturn(userDto1, userDto2);
+
+        var result = userService.getUsers(userIds);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).id());
+        assertEquals("john.doe@example.com", result.get(0).email());
+        assertEquals(2L, result.get(1).id());
+        assertEquals("jane.doe@example.com", result.get(1).email());
+
+        verify(userRepository, times(1)).findAllById(userIds);
+        verify(userMapper, times(2)).toDto(any(User.class));
+    }
+
+    @Test
+    void getUsers_EmptyList_ReturnsEmptyList() {
+        List<Long> emptyUserIds = List.of();
+
+        when(userRepository.findAllById(emptyUserIds)).thenReturn(List.of());
+
+        var result = userService.getUsers(emptyUserIds);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(userRepository, times(1)).findAllById(emptyUserIds);
+        verify(userMapper, never()).toDto(any(User.class));
+    }
+
+    @Test
+    void getUsersByMeetingId_Success() {
+        Long meetingId = 100L;
+        var user1 = TestModelFactory.createTestUser(1L, "john.doe@example.com", Status.ACTIVE);
+        var user2 = TestModelFactory.createTestUser(2L, "jane.doe@example.com", Status.ACTIVE);
+        var userEntities = List.of(user1, user2);
+        var userDto1 = TestModelFactory.createTestUserDto(1L, "John", "Doe", "john.doe@example.com");
+        var userDto2 = TestModelFactory.createTestUserDto(2L, "Jane", "Doe", "jane.doe@example.com");
+
+        when(userRepository.findUsersByMeetingId(meetingId)).thenReturn(userEntities);
+        when(userMapper.toDto(any(User.class))).thenReturn(userDto1, userDto2);
+
+        var result = userService.getUsersByMeetingId(meetingId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).id());
+        assertEquals("john.doe@example.com", result.get(0).email());
+        assertEquals(2L, result.get(1).id());
+        assertEquals("jane.doe@example.com", result.get(1).email());
+
+        verify(userRepository, times(1)).findUsersByMeetingId(meetingId);
+        verify(userMapper, times(2)).toDto(any(User.class));
+    }
+
+    @Test
+    void getUsersByMeetingId_EmptyList_ReturnsEmptyList() {
+        Long meetingId = 100L;
+
+        when(userRepository.findUsersByMeetingId(meetingId)).thenReturn(List.of());
+
+        var result = userService.getUsersByMeetingId(meetingId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(userRepository, times(1)).findUsersByMeetingId(meetingId);
+        verify(userMapper, never()).toDto(any());
     }
 }

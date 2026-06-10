@@ -1,14 +1,18 @@
 package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.MeetingNotFoundException;
+import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.exception.UserNotFoundException;
+import com.yurupari.calendar.model.dto.SlotInformationDto;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.enums.MeetingStatus;
+import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.MeetingMapperImpl;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
+import com.yurupari.calendar.model.response.UserResponse;
 import com.yurupari.calendar.repository.MeetingRepository;
 import com.yurupari.calendar.service.SlotService;
 import com.yurupari.calendar.service.UserService;
@@ -167,7 +171,7 @@ class MeetingServiceImplTest {
         assertEquals(hostId, result.host().id());
         assertNotNull(result.participants());
         assertEquals(2, result.participants().size());
-        assertEquals(participant1Id, result.participants().get(0).id());
+        assertEquals(participant1Id, result.participants().getFirst().id());
         assertEquals(participant2Id, result.participants().get(1).id());
 
         verify(slotService, times(1)).getSlotById(slotId);
@@ -205,8 +209,8 @@ class MeetingServiceImplTest {
     @Test
     void createMeeting_ParticipantsNotAvailable_ThrowsException() {
         Long hostId = 1L;
-        Long participant1Id = 2L;
-        var participantsIds = List.of(participant1Id);
+        Long participantId = 2L;
+        var participantsIds = List.of(participantId);
         Long slotId = 10L;
         var title = "Project Sync";
         var description = "Weekly sync";
@@ -224,11 +228,11 @@ class MeetingServiceImplTest {
         when(slotService.getSlotById(slotId)).thenReturn(hostSlotResponse);
 
         when(slotService.getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE)))
-                .thenReturn(Map.of(participant1Id, List.of()));
+                .thenReturn(Map.of(participantId, List.of()));
 
-        doThrow(new IllegalArgumentException("Participants not available")).when(meetingValidator).validateParticipantsAvailability(any());
+        doThrow(new SlotConflictException(participantsIds)).when(meetingValidator).validateParticipantsAvailability(any());
 
-        assertThrows(IllegalArgumentException.class, () -> meetingService.createMeeting(createMeetingRequest));
+        assertThrows(SlotConflictException.class, () -> meetingService.createMeeting(createMeetingRequest));
 
         verify(slotService, times(1)).getSlotById(slotId);
         verify(slotService, times(1))
@@ -254,6 +258,15 @@ class MeetingServiceImplTest {
 
         var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
         when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto));
+
+        var hostDetails = TestModelFactory.createTestUserResponse(
+                hostId, "Host", "User", "host@example.com", 1L, "UTC"
+        );
+        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+
+        var slotInformation = TestModelFactory.createTestSlotInformation(
+                1L, 1L, ParticipantRole.HOST, "2026-06-10T10:00:00", "2026-06-10T11:00:00");
+        when(slotService.getSlotInformation(anyLong(), anyString())).thenReturn(List.of(slotInformation));
 
         var result = meetingService.getMeetingById(meetingId);
 
@@ -299,5 +312,174 @@ class MeetingServiceImplTest {
 
         verify(meetingRepository, times(1)).findById(meetingId);
         verify(userService, times(1)).getUsersByMeetingId(meetingId);
+    }
+
+    @Test
+    void getMeetingById_Success_WithFullWorkflow() {
+        Long meetingId = 1L;
+        Long hostId = 10L;
+        Long participantId = 11L;
+        var timezone = "Europe/Berlin";
+        var title = "Test Meeting";
+        var description = "Description";
+
+        var hostUser = TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE);
+        var meetingEntity = TestModelFactory.createTestMeeting(meetingId, title, description, hostUser, MeetingStatus.SCHEDULED);
+        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meetingEntity));
+
+        var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
+        var participantUserDto = TestModelFactory.createTestUserDto(participantId, "Participant", "User", "part@example.com");
+        when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto, participantUserDto));
+
+        var hostDetails = UserResponse.builder()
+                .id(hostId)
+                .name("Host")
+                .lastName("User")
+                .email("host@example.com")
+                .timezone(timezone)
+                .build();
+        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+
+        var hostSlotInfo = SlotInformationDto.builder()
+                .id(100L)
+                .calendarId(10L)
+                .role(ParticipantRole.HOST)
+                .startTime("2026-06-10T10:00:00")
+                .endTime("2026-06-10T11:00:00")
+                .build();
+        when(slotService.getSlotInformation(meetingId, timezone)).thenReturn(List.of(hostSlotInfo));
+
+        var result = meetingService.getMeetingById(meetingId);
+
+        assertNotNull(result);
+        assertEquals(meetingId, result.id());
+        assertEquals(title, result.title());
+        assertEquals(hostId, result.host().id());
+        assertEquals(1, result.participants().size());
+        assertEquals(participantId, result.participants().getFirst().id());
+        assertNotNull(result.slot());
+        assertEquals(100L, result.slot().id());
+
+        verify(meetingRepository, times(1)).findById(meetingId);
+        verify(userService, times(1)).getUsersByMeetingId(meetingId);
+        verify(userService, times(1)).getUserById(hostId);
+        verify(slotService, times(1)).getSlotInformation(meetingId, timezone);
+    }
+
+    @Test
+    void getMeetingById_SlotNotFound_ThrowsException() {
+        Long meetingId = 1L;
+        Long hostId = 10L;
+        String timezone = "Europe/Berlin";
+
+        var hostUser = TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE);
+        var meetingEntity = TestModelFactory.createTestMeeting(meetingId, "Title", "Desc", hostUser, MeetingStatus.SCHEDULED);
+        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meetingEntity));
+
+        var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
+        when(userService.getUsersByMeetingId(meetingId)).thenReturn(List.of(hostUserDto));
+
+        var hostDetails = UserResponse.builder()
+                .id(hostId)
+                .name("Host")
+                .lastName("User")
+                .email("host@example.com")
+                .timezone(timezone)
+                .build();
+        when(userService.getUserById(hostId)).thenReturn(hostDetails);
+        when(slotService.getSlotInformation(meetingId, timezone)).thenReturn(List.of());
+
+        assertThrows(SlotNotFoundException.class, () -> meetingService.getMeetingById(meetingId));
+
+        verify(meetingRepository, times(1)).findById(meetingId);
+        verify(slotService, times(1)).getSlotInformation(meetingId, timezone);
+    }
+
+    @Test
+    void updateMeeting_Success_WithParticipantsChange() {
+        Long meetingId = 1L;
+        Long hostId = 10L;
+        Long newParticipantId = 20L;
+        Long hostSlotId = 100L;
+        Long oldParticipantSlotId = 101L;
+        Long newParticipantSlotId = 102L;
+        String timezone = "UTC";
+        var title = "Updated Title";
+        var description = "Updated Desc";
+
+        var updateMeetingRequest = TestModelFactory.createTestUpdateMeetingRequest(
+                title, description, List.of(newParticipantId), timezone);
+        when(meetingValidator.validateRequest(updateMeetingRequest)).thenReturn(updateMeetingRequest);
+
+        var hostUser = TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE);
+        var meetingEntity = TestModelFactory.createTestMeeting(meetingId, "Old", "Old", hostUser, MeetingStatus.SCHEDULED);
+        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meetingEntity));
+        when(meetingRepository.save(any(Meeting.class))).thenReturn(meetingEntity);
+
+        var hostSlot = SlotInformationDto.builder()
+                .id(hostSlotId)
+                .role(ParticipantRole.HOST)
+                .startTime("2026-06-10T10:00:00Z")
+                .endTime("2026-06-10T11:00:00Z")
+                .build();
+        var oldParticipantSlot = SlotInformationDto.builder()
+                .id(oldParticipantSlotId)
+                .role(ParticipantRole.INVITEE)
+                .build();
+        when(slotService.getSlotInformation(meetingId, timezone)).thenReturn(List.of(hostSlot, oldParticipantSlot));
+
+        var newParticipantSlotResponse = TestModelFactory.createTestSlotResponse(
+                newParticipantSlotId,
+                2L,
+                null,
+                "2026-06-10T10:00:00Z",
+                "2026-06-10T11:00:00Z",
+                SlotStatus.FREE,
+                null);
+        when(slotService.getSlots(Set.of(newParticipantId), "2026-06-10T10:00:00Z", "2026-06-10T11:00:00Z", timezone, SlotStatus.FREE))
+                .thenReturn(Map.of(newParticipantId, List.of(newParticipantSlotResponse)));
+
+        meetingService.updateMeeting(meetingId, updateMeetingRequest);
+
+        verify(meetingValidator, times(1)).validateRequest(updateMeetingRequest);
+        verify(meetingRepository, times(1)).findById(meetingId);
+        verify(meetingMapper, times(1)).updateEntityFromDto(any(), eq(meetingEntity));
+        verify(meetingRepository, times(1)).save(meetingEntity);
+        verify(slotService, times(1)).getSlotInformation(meetingId, timezone);
+        verify(slotService, times(2)).updateSlot(eq(hostSlotId), any());
+        verify(slotService, times(1))
+                .updateSlots(eq(Set.of(oldParticipantSlotId)), any());
+        verify(slotService, times(1))
+                .updateSlots(eq(Set.of(newParticipantSlotId)), any());
+    }
+
+    @Test
+    void updateMeeting_Success_OnlyDetailsChange() {
+        Long meetingId = 1L;
+        var updateMeetingRequest = TestModelFactory.createTestUpdateMeetingRequest(
+                "New Title", "New Desc", null, null);
+        when(meetingValidator.validateRequest(updateMeetingRequest)).thenReturn(updateMeetingRequest);
+
+        var hostUser = TestModelFactory.createTestUser(10L, "host@example.com", Status.ACTIVE);
+        var meetingEntity = TestModelFactory.createTestMeeting(meetingId, "Old", "Old", hostUser, MeetingStatus.SCHEDULED);
+        when(meetingRepository.findById(meetingId)).thenReturn(Optional.of(meetingEntity));
+
+        meetingService.updateMeeting(meetingId, updateMeetingRequest);
+
+        verify(meetingRepository, times(1)).save(any(Meeting.class));
+        verify(slotService, never()).getSlotInformation(anyLong(), anyString());
+    }
+
+    @Test
+    void updateMeeting_NotFound_ThrowsException() {
+        Long meetingId = 1L;
+        var updateMeetingRequest = TestModelFactory.createTestUpdateMeetingRequest("T", "D", null, null);
+        when(meetingValidator.validateRequest(updateMeetingRequest)).thenReturn(updateMeetingRequest);
+        when(meetingRepository.findById(meetingId)).thenReturn(Optional.empty());
+
+        assertThrows(MeetingNotFoundException.class, () -> meetingService.updateMeeting(meetingId, updateMeetingRequest));
+
+        verify(meetingRepository, times(1)).findById(meetingId);
+        verify(meetingRepository, never()).save(any());
     }
 }

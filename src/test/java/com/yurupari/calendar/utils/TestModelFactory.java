@@ -1,6 +1,7 @@
 package com.yurupari.calendar.utils;
 
 import com.yurupari.calendar.model.dto.CalendarDto;
+import com.yurupari.calendar.model.dto.SlotInformationDto;
 import com.yurupari.calendar.model.dto.UserDto;
 import com.yurupari.calendar.model.entity.Calendar;
 import com.yurupari.calendar.model.entity.Meeting;
@@ -13,6 +14,7 @@ import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.request.CreateMeetingRequest;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.CreateUserRequest;
+import com.yurupari.calendar.model.request.UpdateMeetingRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.model.request.UpdateUserRequest;
 import com.yurupari.calendar.model.response.SlotResponse;
@@ -100,13 +102,14 @@ public class TestModelFactory {
                 .build();
     }
 
-    public static UserResponse createTestUserResponse(Long id, String name, String lastName, String email, Long calendarId) {
+    public static UserResponse createTestUserResponse(Long id, String name, String lastName, String email, Long calendarId, String timezone) {
         return UserResponse.builder()
                 .id(id)
                 .name(name)
                 .lastName(lastName)
                 .email(email)
                 .calendarId(calendarId)
+                .timezone(timezone)
                 .build();
     }
 
@@ -148,6 +151,25 @@ public class TestModelFactory {
                 .title(title)
                 .description(description)
                 .participants(participants)
+                .build();
+    }
+
+    public static UpdateMeetingRequest createTestUpdateMeetingRequest(String title, String description, List<Long> newParticipantsIds, String timezone) {
+        return UpdateMeetingRequest.builder()
+                .timezone(timezone)
+                .title(title)
+                .description(description)
+                .participants(newParticipantsIds)
+                .build();
+    }
+
+    public static SlotInformationDto createTestSlotInformation(long slotId, long calendarId, ParticipantRole role, String startTime, String endTime) {
+        return SlotInformationDto.builder()
+                .id(slotId)
+                .calendarId(calendarId)
+                .role(role)
+                .startTime(startTime)
+                .endTime(endTime)
                 .build();
     }
 }
