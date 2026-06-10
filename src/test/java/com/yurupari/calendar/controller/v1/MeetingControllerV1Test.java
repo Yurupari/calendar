@@ -103,7 +103,7 @@ class MeetingControllerV1Test {
 
         doNothing().when(meetingService).updateMeeting(anyLong(), any());
 
-        var responseEntity = meetingController.updateUser(1L, request);
+        var responseEntity = meetingController.updateMeeting(1L, request);
 
         assertNotNull(responseEntity);
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
@@ -122,7 +122,7 @@ class MeetingControllerV1Test {
 
         doThrow(new MeetingNotFoundException(1L)).when(meetingService).updateMeeting(anyLong(), any());
 
-        assertThrows(MeetingNotFoundException.class, () -> meetingController.updateUser(1L, request));
+        assertThrows(MeetingNotFoundException.class, () -> meetingController.updateMeeting(1L, request));
 
         verify(meetingService, times(1)).updateMeeting(1L, request);
     }

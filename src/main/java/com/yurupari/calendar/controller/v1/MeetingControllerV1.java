@@ -54,7 +54,7 @@ public class MeetingControllerV1 {
             @ApiResponse(responseCode = "404", description = "Meeting not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateUser(
+    public ResponseEntity<String> updateMeeting(
             @PathVariable Long id,
             @RequestBody UpdateMeetingRequest updateMeetingRequest
     ) {

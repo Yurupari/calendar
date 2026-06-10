@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18.4-alpine
+    image: postgres:17-trixie
     container_name: postgres_calendar
     restart: always
     environment:
