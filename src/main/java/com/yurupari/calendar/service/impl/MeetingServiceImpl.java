@@ -144,16 +144,12 @@ public class MeetingServiceImpl implements MeetingService {
 
         Optional.ofNullable(validatedRequest.participants()).ifPresent(participants -> {
             var timezone = validatedRequest.timezone();
+
             var associatedSlots = slotService.getSlotInformation(meeting.getId(), timezone);
             var hostSlot = associatedSlots.stream()
                     .filter(slot -> ParticipantRole.HOST.equals(slot.role()))
                     .findFirst()
                     .orElseThrow(() -> new SlotNotFoundException(String.format("Slot not found: meetingId=%s", meeting.getId())));
-            var previousParticipantsSlotsIds = associatedSlots.stream()
-                    .filter(slot -> ParticipantRole.INVITEE.equals(slot.role()))
-                    .map(SlotInformationDto::id)
-                    .collect(Collectors.toSet());
-            updateSlots(meeting.getId(), hostSlot.id(), previousParticipantsSlotsIds, MeetingStatus.CANCELLED);
 
             var participantsIds = new HashSet<>(participants);
             var participantsSlotsIds = getParticipantSlotsIds(
@@ -161,6 +157,12 @@ public class MeetingServiceImpl implements MeetingService {
                     hostSlot.startTime(),
                     hostSlot.endTime(),
                     timezone);
+            
+            var previousParticipantsSlotsIds = associatedSlots.stream()
+                    .filter(slot -> ParticipantRole.INVITEE.equals(slot.role()))
+                    .map(SlotInformationDto::id)
+                    .collect(Collectors.toSet());
+            updateSlots(meeting.getId(), hostSlot.id(), previousParticipantsSlotsIds, MeetingStatus.CANCELLED);
 
             updateSlots(meeting.getId(), hostSlot.id(), participantsSlotsIds, MeetingStatus.SCHEDULED);
         });
