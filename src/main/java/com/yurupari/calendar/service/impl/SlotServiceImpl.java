@@ -2,8 +2,10 @@ package com.yurupari.calendar.service.impl;
 
 import com.yurupari.calendar.exception.SlotAlreadyExistsException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
+import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
 import com.yurupari.calendar.model.entity.Slot;
+import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.mapper.SlotMapper;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
@@ -18,10 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -86,7 +88,7 @@ public class SlotServiceImpl implements SlotService {
     }
 
     @Override
-    public List<SlotResponse> getSlots(Long userId, String from, String until) {
+    public List<SlotResponse> getSlots(Long userId, String from, String until, SlotStatus status) {
         log.info("Getting slots: userId={}, from={}, until={}", userId, from, until);
 
         var calendarDto = calendarService.getCalendarByUserId(userId);
@@ -94,9 +96,35 @@ public class SlotServiceImpl implements SlotService {
         var fromInstant = timeUtil.parseIsoStringToInstant(from, calendarDto.timezone());
         var untilInstant = timeUtil.parseIsoStringToInstant(until, calendarDto.timezone());
 
-        return slotRepository.findByCalendarIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(calendarDto.id(), fromInstant, untilInstant).stream()
+        return slotRepository.findSlotsWithOptionalStatus(calendarDto.id(), fromInstant, untilInstant, status).stream()
                 .map(this::buildSlotResponse)
                 .toList();
+    }
+
+    @Override
+    public Map<Long, List<SlotResponse>> getSlots(Set<Long> userIds, String from, String until, String timezone, SlotStatus status) {
+        log.info("Getting slots: userIds=[{}], from={}, until={}", userIds, from, until);
+
+        var calendars = calendarService.getCalendarsByUserIds(userIds);
+        var calendarsIds = calendars.stream()
+                .map(CalendarDto::id)
+                .collect(Collectors.toSet());
+        var calendarToUserMap = calendars.stream()
+                .collect(Collectors.toMap(CalendarDto::id, CalendarDto::userId));
+
+        var fromInstant = timeUtil.parseIsoStringToInstant(from, timezone);
+        var untilInstant = timeUtil.parseIsoStringToInstant(until, timezone);
+
+        var slots = slotRepository.findSlotsWithOptionalStatusInCalendars(calendarsIds, fromInstant, untilInstant, status);
+
+        return slots.stream()
+                .collect(Collectors.groupingBy(
+                        slot -> calendarToUserMap.get(slot.getCalendar().getId()),
+                        Collectors.mapping(
+                                this::buildSlotResponse,
+                                Collectors.toList()
+                        )
+                ));
     }
 
     @Override
@@ -128,7 +156,7 @@ public class SlotServiceImpl implements SlotService {
 
     @Override
     @Transactional
-    public void updateSlots(List<Long> ids, UpdateSlotRequest updateSlotRequest) {
+    public void updateSlots(Set<Long> ids, UpdateSlotRequest updateSlotRequest) {
         log.info("Updating slots: ids=[{}], request={}", ids, updateSlotRequest);
 
         var slots = slotRepository.findAllById(ids);

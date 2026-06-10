@@ -1,6 +1,7 @@
 {
   "hostId": 1,
   "slotId": 1,
+  "timezone": "America/New_York",
   "title": "Project Sync",
   "description": "Weekly project synchronization meeting",
   "participants": [2, 3]

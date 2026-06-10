@@ -140,10 +140,11 @@ public class TestModelFactory {
                 .build();
     }
 
-    public static CreateMeetingRequest createTestCreateMeetingRequest(Long hostId, Long slotId, String title, String description, List<Long> participants) {
+    public static CreateMeetingRequest createTestCreateMeetingRequest(Long hostId, Long slotId, String timezone, String title, String description, List<Long> participants) {
         return CreateMeetingRequest.builder()
                 .hostId(hostId)
                 .slotId(slotId)
+                .timezone(timezone)
                 .title(title)
                 .description(description)
                 .participants(participants)

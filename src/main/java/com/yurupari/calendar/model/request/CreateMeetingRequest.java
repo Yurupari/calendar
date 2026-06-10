@@ -10,6 +10,9 @@ public record CreateMeetingRequest(
         @NotNull(message = "Host ID is required")
         Long hostId,
 
+        @NotNull
+        String timezone,
+
         @NotNull(message = "Slot ID is required")
         Long slotId,
 

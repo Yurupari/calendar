@@ -1,5 +1,6 @@
 package com.yurupari.calendar.controller.v1;
 
+import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
 import com.yurupari.calendar.model.response.SlotResponse;
@@ -60,9 +61,10 @@ public class SlotControllerV1 {
     public ResponseEntity<List<SlotResponse>> getSlots(
             @PathVariable Long userId,
             @RequestParam String from,
-            @RequestParam String until
+            @RequestParam String until,
+            @RequestParam(required = false) SlotStatus status
     ) {
-        var slot = slotService.getSlots(userId, from, until);
+        var slot = slotService.getSlots(userId, from, until, status);
         return ResponseEntity.ok(slot);
     }
 

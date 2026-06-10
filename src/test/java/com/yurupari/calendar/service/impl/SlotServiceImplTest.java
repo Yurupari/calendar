@@ -92,10 +92,10 @@ class SlotServiceImplTest {
         Long userId = 1L;
         Long calendarId = 10L;
         Long slotId = 100L;
-        var startTimeStr = "2024-01-01T09:00:00";
-        var endTimeStr = "2024-01-01T10:00:00";
-        var startTime = Instant.parse("2024-01-01T09:00:00Z");
-        var endTime = Instant.parse("2024-01-01T10:00:00Z");
+        var startTimeStr = "2026-01-01T09:00:00";
+        var endTimeStr = "2026-01-01T10:00:00";
+        var startTime = Instant.parse("2026-01-01T09:00:00Z");
+        var endTime = Instant.parse("2026-01-01T10:00:00Z");
 
         var createSlotRequest = TestModelFactory.createTestCreateSlotRequest(userId, startTimeStr, endTimeStr);
         var calendarDto = createTestCalendarDto(calendarId, userId);
@@ -140,10 +140,10 @@ class SlotServiceImplTest {
         Long userId = 1L;
         Long calendarId = 10L;
         Long existingSlotId = 100L;
-        var startTimeStr = "2024-01-01T09:00:00";
-        var endTimeStr = "2024-01-01T10:00:00";
-        var startTime = Instant.parse("2024-01-01T09:00:00Z");
-        var endTime = Instant.parse("2024-01-01T10:00:00Z");
+        var startTimeStr = "2026-01-01T09:00:00";
+        var endTimeStr = "2026-01-01T10:00:00";
+        var startTime = Instant.parse("2026-01-01T09:00:00Z");
+        var endTime = Instant.parse("2026-01-01T10:00:00Z");
 
         var createSlotRequest = TestModelFactory.createTestCreateSlotRequest(userId, startTimeStr, endTimeStr);
         var calendarDto = createTestCalendarDto(calendarId, userId);
@@ -173,8 +173,8 @@ class SlotServiceImplTest {
     @Test
     void createSlot_InvalidDates_ThrowsException() {
         Long userId = 1L;
-        var startTimeStr = "2024-01-01T10:00:00";
-        var endTimeStr = "2024-01-01T09:00:00";
+        var startTimeStr = "2026-01-01T10:00:00";
+        var endTimeStr = "2026-01-01T09:00:00";
 
         var createSlotRequest = TestModelFactory.createTestCreateSlotRequest(userId, startTimeStr, endTimeStr);
 
@@ -194,8 +194,8 @@ class SlotServiceImplTest {
     @Test
     void createSlot_CalendarNotFound_ThrowsException() {
         Long userId = 1L;
-        var startTimeStr = "2024-01-01T09:00:00";
-        var endTimeStr = "2024-01-01T10:00:00";
+        var startTimeStr = "2026-01-01T09:00:00";
+        var endTimeStr = "2026-01-01T10:00:00";
 
         var createSlotRequest = TestModelFactory.createTestCreateSlotRequest(userId, startTimeStr, endTimeStr);
 
@@ -219,10 +219,10 @@ class SlotServiceImplTest {
         Long calendarId = 10L;
         Long meetingId = 20L;
         Long userId = 1L;
-        var startTimeStr = "2024-01-01T09:00:00";
-        var endTimeStr = "2024-01-01T10:00:00";
-        var startTime = Instant.parse("2024-01-01T09:00:00Z");
-        var endTime = Instant.parse("2024-01-01T10:00:00Z");
+        var startTimeStr = "2026-01-01T09:00:00";
+        var endTimeStr = "2026-01-01T10:00:00";
+        var startTime = Instant.parse("2026-01-01T09:00:00Z");
+        var endTime = Instant.parse("2026-01-01T10:00:00Z");
 
         var user = createTestUser(userId);
         var calendar = createTestCalendar(calendarId, user);
@@ -268,10 +268,10 @@ class SlotServiceImplTest {
         Long meetingId1 = 20L;
         Long meetingId2 = 21L;
 
-        var fromStr = "2024-01-01T00:00:00";
-        var untilStr = "2024-01-01T23:59:59";
-        var fromInstant = Instant.parse("2024-01-01T00:00:00Z");
-        var untilInstant = Instant.parse("2024-01-01T23:59:59Z");
+        var fromStr = "2026-01-01T00:00:00";
+        var untilStr = "2026-01-01T23:59:59";
+        var fromInstant = Instant.parse("2026-01-01T00:00:00Z");
+        var untilInstant = Instant.parse("2026-01-01T23:59:59Z");
 
         var user = createTestUser(userId);
         var calendar = createTestCalendar(calendarId, user);
@@ -283,16 +283,16 @@ class SlotServiceImplTest {
                 100L,
                 calendar,
                 meeting1,
-                Instant.parse("2024-01-01T09:00:00Z"),
-                Instant.parse("2024-01-01T10:00:00Z"));
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
         slot1.setStatus(SlotStatus.FREE);
         slot1.setRole(ParticipantRole.HOST);
         var slot2 = createTestSlot(
                 101L,
                 calendar,
                 meeting2,
-                Instant.parse("2024-01-01T11:00:00Z"),
-                Instant.parse("2024-01-01T12:00:00Z"));
+                Instant.parse("2026-01-01T11:00:00Z"),
+                Instant.parse("2026-01-01T12:00:00Z"));
         slot2.setStatus(SlotStatus.BUSY);
         slot2.setRole(ParticipantRole.INVITEE);
 
@@ -301,14 +301,14 @@ class SlotServiceImplTest {
         when(calendarService.getCalendarByUserId(anyLong())).thenReturn(calendarDto);
         when(timeUtil.parseIsoStringToInstant(fromStr, calendarDto.timezone())).thenReturn(fromInstant);
         when(timeUtil.parseIsoStringToInstant(untilStr, calendarDto.timezone())).thenReturn(untilInstant);
-        when(slotRepository.findByCalendarIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(anyLong(), any(Instant.class), any(Instant.class)))
+        when(slotRepository.findSlotsWithOptionalStatus(anyLong(), any(), any(), any()))
                 .thenReturn(foundSlots);
         when(timeUtil.parseInstantToIsoString(any(Instant.class), anyString())).thenReturn(
-                "2024-01-01T09:00:00", "2024-01-01T10:00:00",
-                "2024-01-01T11:00:00", "2024-01-01T12:00:00"
+                "2026-01-01T09:00:00", "2026-01-01T10:00:00",
+                "2026-01-01T11:00:00", "2026-01-01T12:00:00"
         );
 
-        var result = slotService.getSlots(userId, fromStr, untilStr);
+        var result = slotService.getSlots(userId, fromStr, untilStr, SlotStatus.FREE);
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -318,25 +318,25 @@ class SlotServiceImplTest {
         verify(timeUtil, times(1)).parseIsoStringToInstant(fromStr, calendar.getTimezone());
         verify(timeUtil, times(1)).parseIsoStringToInstant(untilStr, calendar.getTimezone());
         verify(slotRepository, times(1))
-                .findByCalendarIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(anyLong(), any(), any());
+                .findSlotsWithOptionalStatus(anyLong(), any(), any(), any());
         verify(timeUtil, times(4)).parseInstantToIsoString(any(Instant.class), anyString());
     }
 
     @Test
     void getSlots_EmptyList() {
         Long userId = 1L;
-        var fromStr = "2024-01-01T00:00:00";
-        var untilStr = "2024-01-01T23:59:59";
-        var fromInstant = Instant.parse("2024-01-01T00:00:00Z");
-        var untilInstant = Instant.parse("2024-01-01T23:59:59Z");
+        var fromStr = "2026-01-01T00:00:00";
+        var untilStr = "2026-01-01T23:59:59";
+        var fromInstant = Instant.parse("2026-01-01T00:00:00Z");
+        var untilInstant = Instant.parse("2026-01-01T23:59:59Z");
 
         when(calendarService.getCalendarByUserId(anyLong())).thenReturn(createTestCalendarDto(10L, userId));
         when(timeUtil.parseIsoStringToInstant(fromStr, "UTC")).thenReturn(fromInstant);
         when(timeUtil.parseIsoStringToInstant(untilStr, "UTC")).thenReturn(untilInstant);
-        when(slotRepository.findByCalendarIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(anyLong(), any(), any()))
+        when(slotRepository.findSlotsWithOptionalStatus(anyLong(), any(), any(), any()))
                 .thenReturn(Collections.emptyList());
 
-        var result = slotService.getSlots(userId, fromStr, untilStr);
+        var result = slotService.getSlots(userId, fromStr, untilStr, SlotStatus.BUSY);
 
         assertNotNull(result);
         assertEquals(0, result.size());
@@ -344,7 +344,7 @@ class SlotServiceImplTest {
         verify(timeUtil, times(1)).parseIsoStringToInstant(fromStr, "UTC");
         verify(timeUtil, times(1)).parseIsoStringToInstant(untilStr, "UTC");
         verify(slotRepository, times(1))
-                .findByCalendarIdAndStartTimeGreaterThanEqualAndStartTimeLessThan(anyLong(), any(), any());
+                .findSlotsWithOptionalStatus(anyLong(), any(), any(), any());
         verify(timeUtil, never()).parseInstantToIsoString(any(), anyString());
     }
 
@@ -354,10 +354,10 @@ class SlotServiceImplTest {
         Long calendarId = 10L;
         Long meetingId = 20L;
         Long userId = 1L;
-        var newStartTimeStr = "2024-01-01T10:00:00";
-        var newEndTimeStr = "2024-01-01T11:00:00";
-        var newStartTime = Instant.parse("2024-01-01T10:00:00Z");
-        var newEndTime = Instant.parse("2024-01-01T11:00:00Z");
+        var newStartTimeStr = "2026-01-01T10:00:00";
+        var newEndTimeStr = "2026-01-01T11:00:00";
+        var newStartTime = Instant.parse("2026-01-01T10:00:00Z");
+        var newEndTime = Instant.parse("2026-01-01T11:00:00Z");
 
         var updateSlotRequest = TestModelFactory.createTestUpdateSlotRequest(
                 meetingId,
@@ -371,8 +371,8 @@ class SlotServiceImplTest {
         var existingSlot = createTestSlot(slotId,
                 calendar,
                 null,
-                Instant.parse("2024-01-01T09:00:00Z"),
-                Instant.parse("2024-01-01T10:00:00Z"));
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
         var newSlot = createTestSlot(
                 slotId,
                 calendar,
@@ -407,8 +407,8 @@ class SlotServiceImplTest {
     @Test
     void updateSlot_NotFound_ThrowsException() {
         Long slotId = 1L;
-        var startTimeStr = "2024-01-01T10:00:00";
-        var endTimeStr = "2024-01-01T11:00:00";
+        var startTimeStr = "2026-01-01T10:00:00";
+        var endTimeStr = "2026-01-01T11:00:00";
         var updateSlotRequest = TestModelFactory.createTestUpdateSlotRequest(
                 null,
                 startTimeStr,
@@ -431,8 +431,8 @@ class SlotServiceImplTest {
     @Test
     void updateSlot_InvalidDates_ThrowsException() {
         Long slotId = 1L;
-        var startTimeStr = "2024-01-01T11:00:00";
-        var endTimeStr = "2024-01-01T10:00:00";
+        var startTimeStr = "2026-01-01T11:00:00";
+        var endTimeStr = "2026-01-01T10:00:00";
         var updateSlotRequest = TestModelFactory.createTestUpdateSlotRequest(
                 null,
                 startTimeStr,

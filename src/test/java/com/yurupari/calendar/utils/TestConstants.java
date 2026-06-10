@@ -7,9 +7,7 @@ public class TestConstants {
     public static final String CREATE_USER_BAD_REQUEST_JSON = "json/create-user-bad-request.json";
     public static final String UPDATE_USER_BAD_REQUEST_JSON = "json/update-user-bad-request.json";
 
-    public static final String CREATE_CALENDAR_JSON = "json/create-calendar.json";
     public static final String UPDATE_CALENDAR_JSON = "json/update-calendar.json";
-    public static final String CREATE_CALENDAR_BAD_REQUEST_JSON = "json/create-calendar-bad-request.json";
     public static final String UPDATE_CALENDAR_BAD_REQUEST_JSON = "json/update-calendar-bad-request.json";
 
     public static final String CREATE_MEETING_JSON = "json/create-meeting.json";

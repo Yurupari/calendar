@@ -123,16 +123,21 @@ class SlotControllerV1Test {
         );
         var slotList = List.of(slotResponse1, slotResponse2);
 
-        when(slotService.getSlots(anyLong(), anyString(), anyString())).thenReturn(slotList);
+        when(slotService.getSlots(anyLong(), anyString(), anyString(), any())).thenReturn(slotList);
 
-        var responseEntity = slotController.getSlots(1L, "2023-01-01T00:00:00", "2023-01-01T23:59:59");
+        var responseEntity = slotController.getSlots(
+                1L,
+                "2023-01-01T00:00:00",
+                "2023-01-01T23:59:59",
+                SlotStatus.BUSY);
 
         assertNotNull(responseEntity);
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         assertNotNull(responseEntity.getBody());
         assertEquals(slotList, responseEntity.getBody());
 
-        verify(slotService, times(1)).getSlots(1L, "2023-01-01T00:00:00", "2023-01-01T23:59:59");
+        verify(slotService, times(1))
+                .getSlots(1L, "2023-01-01T00:00:00", "2023-01-01T23:59:59", SlotStatus.BUSY);
     }
 
     @Test

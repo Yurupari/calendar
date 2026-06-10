@@ -4,6 +4,8 @@ import com.yurupari.calendar.exception.MeetingNotFoundException;
 import com.yurupari.calendar.exception.UserNotFoundException;
 import com.yurupari.calendar.model.dto.MeetingDto;
 import com.yurupari.calendar.model.dto.UserDto;
+import com.yurupari.calendar.model.entity.Meeting;
+import com.yurupari.calendar.model.enums.MeetingStatus;
 import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.mapper.MeetingMapper;
@@ -22,9 +24,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,46 +50,21 @@ public class MeetingServiceImpl implements MeetingService {
     public MeetingResponse createMeeting(CreateMeetingRequest createMeetingRequest) {
         log.info("Creating meeting: request={}", createMeetingRequest);
 
-        var slotDto = slotService.getSlotById(createMeetingRequest.slotId());
+        var hostSlot = slotService.getSlotById(createMeetingRequest.slotId());
         var hostId = createMeetingRequest.hostId();
+        var participantsIds = new HashSet<>(createMeetingRequest.participants());
 
-        var participantsSlots = Optional.ofNullable(createMeetingRequest.participants())
-                .map(participantList -> participantList.stream()
-                        .collect(Collectors.toMap(
-                                userId -> userId,
-                                userId -> slotService.getSlots(userId, slotDto.startTime(), slotDto.endTime()).stream()
-                                        .findFirst()
-                        )))
-                .orElseGet(Map::of);
+        var participantsSlots = getParticipantSlots(participantsIds, hostSlot, createMeetingRequest);
 
-        meetingValidator.validateParticipantsAvailability(participantsSlots);
-
-        var meetingDto = MeetingDto.builder()
-                .hostId(hostId)
-                .title(createMeetingRequest.title())
-                .description(createMeetingRequest.description())
-                .build();
-        var savedMeeting = meetingRepository.save(meetingMapper.toEntity(meetingDto));
+        var savedMeeting = saveMeeting(createMeetingRequest);
         var meetingId = savedMeeting.getId();
 
-        var hostSlotRequest = UpdateSlotRequest.builder()
-                .meetingId(meetingId)
-                .status(SlotStatus.BUSY)
-                .role(ParticipantRole.HOST)
-                .build();
-        slotService.updateSlot(slotDto.id(), hostSlotRequest);
-
-        var participantSlotRequest = UpdateSlotRequest.builder()
-                .meetingId(meetingId)
-                .status(SlotStatus.BUSY)
-                .role(ParticipantRole.INVITEE)
-                .build();
-        var slotIds = participantsSlots.values().stream()
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(SlotResponse::id)
-                .toList();
-        slotService.updateSlots(slotIds, participantSlotRequest);
+        var participantsSlotIds = participantsSlots.values().stream()
+                .filter(slotList -> slotList != null && !slotList.isEmpty())
+                .map(slotList -> slotList.stream().findFirst())
+                .map(slotResponse -> slotResponse.get().id())
+                .collect(Collectors.toSet());
+        updateSlots(meetingId, hostSlot.id(), participantsSlotIds, savedMeeting.getStatus());
 
         var userIds = new ArrayList<>(createMeetingRequest.participants());
         userIds.add(hostId);
@@ -123,6 +101,47 @@ public class MeetingServiceImpl implements MeetingService {
                 .description(meeting.getDescription())
                 .participants(participants)
                 .build();
+    }
+
+    private Map<Long, List<SlotResponse>> getParticipantSlots(Set<Long> participantsIds, SlotResponse slot, CreateMeetingRequest request) {
+        var participantsSlots = slotService.getSlots(
+                participantsIds,
+                slot.startTime(),
+                slot.endTime(),
+                request.timezone(),
+                SlotStatus.FREE);
+        meetingValidator.validateParticipantsAvailability(participantsSlots);
+
+        return participantsSlots;
+    }
+
+    private Meeting saveMeeting(CreateMeetingRequest request) {
+        var meetingDto = MeetingDto.builder()
+                .hostId(request.hostId())
+                .title(request.title())
+                .description(request.description())
+                .build();
+        return meetingRepository.save(meetingMapper.toEntity(meetingDto));
+    }
+
+    private void updateSlots(Long meetingId, Long hostSlotId, Set<Long> participantSlotIds, MeetingStatus meetingStatus) {
+        var slotStatus = MeetingStatus.SCHEDULED.equals(meetingStatus) ? SlotStatus.BUSY : SlotStatus.FREE;
+        var hostRole = MeetingStatus.SCHEDULED.equals(meetingStatus) ? ParticipantRole.HOST : null;
+        var participantRole = MeetingStatus.SCHEDULED.equals(meetingStatus) ? ParticipantRole.INVITEE : null;
+
+        var hostSlotRequest = UpdateSlotRequest.builder()
+                .meetingId(meetingId)
+                .status(slotStatus)
+                .role(hostRole)
+                .build();
+        slotService.updateSlot(hostSlotId, hostSlotRequest);
+
+        var participantSlotRequest = UpdateSlotRequest.builder()
+                .meetingId(meetingId)
+                .status(slotStatus)
+                .role(participantRole)
+                .build();
+        slotService.updateSlots(participantSlotIds, participantSlotRequest);
     }
 
     private List<UserDto> getParticipants(Long hostId, List<UserDto> users) {

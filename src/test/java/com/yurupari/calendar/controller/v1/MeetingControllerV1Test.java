@@ -35,7 +35,7 @@ class MeetingControllerV1Test {
     @Test
     void createMeeting_Success() {
         var createMeetingRequest = TestModelFactory.createTestCreateMeetingRequest(
-                1L, 10L, "Test Meeting", "Description", List.of(2L, 3L));
+                1L, 10L, "UTC", "Test Meeting", "Description", List.of(2L, 3L));
         var hostDto = TestModelFactory.createTestUserDto(1L, "John", "Doe", "john.doe@example.com");
         var participantDto = TestModelFactory.createTestUserDto(1L, "Marlene", "Wollin", "marlene.wollin@example.com");
         var meetingResponse = MeetingResponse.builder()

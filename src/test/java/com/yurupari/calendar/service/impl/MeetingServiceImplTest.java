@@ -21,9 +21,11 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -68,12 +71,11 @@ class MeetingServiceImplTest {
         Long meetingId = 100L;
         var title = "Project Sync";
         var description = "Weekly sync";
-        var startTime = "2024-01-01T09:00:00Z";
-        var endTime = "2024-01-01T10:00:00Z";
+        var startTime = "2026-01-01T09:00:00Z";
+        var endTime = "2026-01-01T10:00:00Z";
 
         var createMeetingRequest = TestModelFactory.createTestCreateMeetingRequest(
-                hostId, slotId, title, description, List.of()
-        );
+                hostId, slotId, "UTC", title, description, List.of());
 
         var slotResponse = TestModelFactory.createTestSlotResponse(
                 slotId, 1L, null, startTime, endTime, SlotStatus.FREE, null
@@ -103,7 +105,7 @@ class MeetingServiceImplTest {
         verify(meetingValidator, times(1)).validateParticipantsAvailability(any());
         verify(meetingRepository, times(1)).save(any());
         verify(slotService, times(1)).updateSlot(anyLong(), any());
-        verify(slotService, times(1)).updateSlots(anyList(), any());
+        verify(slotService, times(1)).updateSlots(anySet(), any());
         verify(userService, times(1)).getUsers(anyList());
     }
 
@@ -112,22 +114,22 @@ class MeetingServiceImplTest {
         Long hostId = 1L;
         Long participant1Id = 2L;
         Long participant2Id = 3L;
+        var participantsIds = List.of(participant1Id, participant2Id);
         Long slotId = 10L;
         Long participant1SlotId = 11L;
         Long participant2SlotId = 12L;
         Long meetingId = 100L;
         var title = "Project Sync";
         var description = "Weekly sync";
-        var startTime = "2024-01-01T09:00:00Z";
-        var endTime = "2024-01-01T10:00:00Z";
+        var startTime = "2026-01-01T09:00:00Z";
+        var endTime = "2026-01-01T10:00:00Z";
+        var timezone = "UTC";
 
         var createMeetingRequest = TestModelFactory.createTestCreateMeetingRequest(
-                hostId, slotId, title, description, List.of(participant1Id, participant2Id)
-        );
+                hostId, slotId, timezone, title, description, participantsIds);
 
         var hostSlotResponse = TestModelFactory.createTestSlotResponse(
-                slotId, 1L, null, startTime, endTime, SlotStatus.FREE, null
-        );
+                slotId, 1L, null, startTime, endTime, SlotStatus.FREE, null);
         when(slotService.getSlotById(slotId)).thenReturn(hostSlotResponse);
 
         var participant1SlotResponse = TestModelFactory.createTestSlotResponse(
@@ -136,16 +138,20 @@ class MeetingServiceImplTest {
         var participant2SlotResponse = TestModelFactory.createTestSlotResponse(
                 participant2SlotId, 3L, null, startTime, endTime, SlotStatus.FREE, null
         );
-        when(slotService.getSlots(eq(participant1Id), anyString(), anyString()))
-                .thenReturn(List.of(participant1SlotResponse));
-        when(slotService.getSlots(eq(participant2Id), anyString(), anyString()))
-                .thenReturn(List.of(participant2SlotResponse));
+        var participantsSlots = Map.of(
+                participant1Id, List.of(participant1SlotResponse),
+                participant2Id, List.of(participant2SlotResponse));
+        when(slotService.getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE)))
+                .thenReturn(participantsSlots);
 
-        doNothing().when(meetingValidator).validateParticipantsAvailability(any(Map.class));
+        doNothing().when(meetingValidator).validateParticipantsAvailability(any());
 
         var savedMeetingEntity = TestModelFactory.createTestMeeting(
-                meetingId, title, description, TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE), MeetingStatus.SCHEDULED
-        );
+                meetingId,
+                title,
+                description,
+                TestModelFactory.createTestUser(hostId, "host@example.com", Status.ACTIVE),
+                MeetingStatus.SCHEDULED);
         when(meetingRepository.save(any(Meeting.class))).thenReturn(savedMeetingEntity);
 
         var hostUserDto = TestModelFactory.createTestUserDto(hostId, "Host", "User", "host@example.com");
@@ -165,14 +171,12 @@ class MeetingServiceImplTest {
         assertEquals(participant2Id, result.participants().get(1).id());
 
         verify(slotService, times(1)).getSlotById(slotId);
-        verify(slotService, times(1)).getSlots(eq(participant1Id), anyString(), anyString());
-        verify(slotService, times(1)).getSlots(eq(participant2Id), anyString(), anyString());
+        verify(slotService, times(1))
+                .getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE));
         verify(meetingValidator, times(1)).validateParticipantsAvailability(any());
         verify(meetingRepository, times(1)).save(any());
         verify(slotService, times(1)).updateSlot(eq(slotId), any());
-        verify(slotService, times(1)).updateSlots(
-                anyList(), any()
-        );
+        verify(slotService, times(1)).updateSlots(anySet(), any());
         verify(userService, times(1)).getUsers(anyList());
     }
 
@@ -184,18 +188,17 @@ class MeetingServiceImplTest {
         var description = "Weekly sync";
 
         var createMeetingRequest = TestModelFactory.createTestCreateMeetingRequest(
-                hostId, slotId, title, description, List.of()
-        );
+                hostId, slotId, "UTC", title, description, List.of());
 
         when(slotService.getSlotById(slotId)).thenThrow(new SlotNotFoundException(slotId));
 
         assertThrows(SlotNotFoundException.class, () -> meetingService.createMeeting(createMeetingRequest));
 
         verify(slotService, times(1)).getSlotById(slotId);
-        verify(meetingValidator, never()).validateParticipantsAvailability(any(Map.class));
+        verify(meetingValidator, never()).validateParticipantsAvailability(any());
         verify(meetingRepository, never()).save(any(Meeting.class));
         verify(slotService, never()).updateSlot(anyLong(), any(UpdateSlotRequest.class));
-        verify(slotService, never()).updateSlots(anyList(), any(UpdateSlotRequest.class));
+        verify(slotService, never()).updateSlots(anySet(), any(UpdateSlotRequest.class));
         verify(userService, never()).getUsers(anyList());
     }
 
@@ -203,14 +206,16 @@ class MeetingServiceImplTest {
     void createMeeting_ParticipantsNotAvailable_ThrowsException() {
         Long hostId = 1L;
         Long participant1Id = 2L;
+        var participantsIds = List.of(participant1Id);
         Long slotId = 10L;
         var title = "Project Sync";
         var description = "Weekly sync";
-        var startTime = "2024-01-01T09:00:00Z";
-        var endTime = "2024-01-01T10:00:00Z";
+        var startTime = "2026-01-01T09:00:00Z";
+        var endTime = "2026-01-01T10:00:00Z";
+        var timezone = "UTC";
 
         var createMeetingRequest = TestModelFactory.createTestCreateMeetingRequest(
-                hostId, slotId, title, description, List.of(participant1Id)
+                hostId, slotId, timezone, title, description, participantsIds
         );
 
         var hostSlotResponse = TestModelFactory.createTestSlotResponse(
@@ -218,19 +223,20 @@ class MeetingServiceImplTest {
         );
         when(slotService.getSlotById(slotId)).thenReturn(hostSlotResponse);
 
-        when(slotService.getSlots(eq(participant1Id), anyString(), anyString()))
-                .thenReturn(List.of()); // Participant not available
+        when(slotService.getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE)))
+                .thenReturn(Map.of(participant1Id, List.of()));
 
-        doThrow(new IllegalArgumentException("Participants not available")).when(meetingValidator).validateParticipantsAvailability(any(Map.class));
+        doThrow(new IllegalArgumentException("Participants not available")).when(meetingValidator).validateParticipantsAvailability(any());
 
         assertThrows(IllegalArgumentException.class, () -> meetingService.createMeeting(createMeetingRequest));
 
         verify(slotService, times(1)).getSlotById(slotId);
-        verify(slotService, times(1)).getSlots(eq(participant1Id), anyString(), anyString());
-        verify(meetingValidator, times(1)).validateParticipantsAvailability(any(Map.class));
+        verify(slotService, times(1))
+                .getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE));
+        verify(meetingValidator, times(1)).validateParticipantsAvailability(any());
         verify(meetingRepository, never()).save(any(Meeting.class));
         verify(slotService, never()).updateSlot(anyLong(), any(UpdateSlotRequest.class));
-        verify(slotService, never()).updateSlots(anyList(), any(UpdateSlotRequest.class));
+        verify(slotService, never()).updateSlots(anySet(), any(UpdateSlotRequest.class));
         verify(userService, never()).getUsers(anyList());
     }
 

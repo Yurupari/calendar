@@ -23,24 +23,24 @@ class SlotValidatorTest {
 
     @Test
     void validateDates_Success() {
-        var from = "2024-01-01T09:00:00";
-        var until = "2024-01-01T10:00:00";
+        var from = "2026-01-01T09:00:00";
+        var until = "2026-01-01T10:00:00";
 
         assertDoesNotThrow(() -> slotValidator.validateDates(from, until));
     }
 
     @Test
     void validateDates_FromAfterUntil_ThrowsException() {
-        var from = "2024-01-01T10:00:00";
-        var until = "2024-01-01T09:00:00";
+        var from = "2026-01-01T10:00:00";
+        var until = "2026-01-01T09:00:00";
 
         assertThrows(InvalidFormatException.class, () -> slotValidator.validateDates(from, until));
     }
 
     @Test
     void validateDates_FromEqualsUntil_Success() {
-        var from = "2024-01-01T10:00:00";
-        var until = "2024-01-01T10:00:00";
+        var from = "2026-01-01T10:00:00";
+        var until = "2026-01-01T10:00:00";
 
         assertDoesNotThrow(() -> slotValidator.validateDates(from, until));
     }
@@ -48,14 +48,14 @@ class SlotValidatorTest {
     @Test
     void validateDates_NullFrom_Success() {
         String from = null;
-        var until = "2024-01-01T10:00:00";
+        var until = "2026-01-01T10:00:00";
 
         assertDoesNotThrow(() -> slotValidator.validateDates(from, until));
     }
 
     @Test
     void validateDates_NullUntil_Success() {
-        var from = "2024-01-01T09:00:00";
+        var from = "2026-01-01T09:00:00";
         String until = null;
 
         assertDoesNotThrow(() -> slotValidator.validateDates(from, until));
@@ -64,14 +64,14 @@ class SlotValidatorTest {
     @Test
     void validateDates_BlankFrom_ThrowsInvalidFormatException() {
         String from = "   ";
-        var until = "2024-01-01T10:00:00";
+        var until = "2026-01-01T10:00:00";
 
         assertThrows(InvalidFormatException.class, () -> slotValidator.validateDates(from, until));
     }
 
     @Test
     void validateDates_BlankUntil_ThrowsInvalidFormatException() {
-        var from = "2024-01-01T09:00:00";
+        var from = "2026-01-01T09:00:00";
         String until = "   ";
 
         assertThrows(InvalidFormatException.class, () -> slotValidator.validateDates(from, until));
