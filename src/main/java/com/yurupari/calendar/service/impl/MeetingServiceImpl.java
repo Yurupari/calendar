@@ -157,7 +157,7 @@ public class MeetingServiceImpl implements MeetingService {
                     hostSlot.startTime(),
                     hostSlot.endTime(),
                     timezone);
-            
+
             var previousParticipantsSlotsIds = associatedSlots.stream()
                     .filter(slot -> ParticipantRole.INVITEE.equals(slot.role()))
                     .map(SlotInformationDto::id)
