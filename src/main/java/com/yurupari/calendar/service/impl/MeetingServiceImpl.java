@@ -55,6 +55,8 @@ public class MeetingServiceImpl implements MeetingService {
         log.info("Creating meeting: request={}", createMeetingRequest);
 
         var hostSlot = slotService.getSlotById(createMeetingRequest.slotId());
+        meetingValidator.validateHostSlot(hostSlot);
+
         var hostId = createMeetingRequest.hostId();
         var participantsIds = new HashSet<>(createMeetingRequest.participants());
         var participantsSlotIds = getParticipantSlotsIds(
@@ -191,16 +193,17 @@ public class MeetingServiceImpl implements MeetingService {
         var slotStatus = MeetingStatus.SCHEDULED.equals(meetingStatus) ? SlotStatus.BUSY : SlotStatus.FREE;
         var hostRole = MeetingStatus.SCHEDULED.equals(meetingStatus) ? ParticipantRole.HOST : null;
         var participantRole = MeetingStatus.SCHEDULED.equals(meetingStatus) ? ParticipantRole.INVITEE : null;
+        var validatedMeetingId = MeetingStatus.SCHEDULED.equals(meetingStatus) ? meetingId : null;
 
         var hostSlotRequest = UpdateSlotRequest.builder()
-                .meetingId(meetingId)
+                .meetingId(validatedMeetingId)
                 .status(slotStatus)
                 .role(hostRole)
                 .build();
         slotService.updateSlot(hostSlotId, hostSlotRequest);
 
         var participantSlotRequest = UpdateSlotRequest.builder()
-                .meetingId(meetingId)
+                .meetingId(validatedMeetingId)
                 .status(slotStatus)
                 .role(participantRole)
                 .build();

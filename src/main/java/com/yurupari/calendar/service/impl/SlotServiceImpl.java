@@ -158,9 +158,10 @@ public class SlotServiceImpl implements SlotService {
                 .orElseThrow(() -> new SlotNotFoundException(id));
 
         var timezone = slot.getCalendar().getTimezone();
-
         var startTime = timeUtil.parseIsoStringToInstant(updateSlotRequest.startTime(), timezone);
         var endTime = timeUtil.parseIsoStringToInstant(updateSlotRequest.endTime(), timezone);
+
+        slotValidator.validateExistingTimeFrame(slot.getCalendar().getId(), startTime, endTime);
 
         var slotDto = SlotDto.builder()
                 .meetingId(updateSlotRequest.meetingId())
@@ -170,6 +171,7 @@ public class SlotServiceImpl implements SlotService {
                 .role(updateSlotRequest.role())
                 .build();
         slotMapper.updateEntityFromDto(slotDto, slot);
+        if (updateSlotRequest.meetingId() == null) slot.setMeeting(null);
 
         slotRepository.save(slot);
     }
@@ -203,7 +205,8 @@ public class SlotServiceImpl implements SlotService {
                 .orElseThrow(() -> new SlotNotFoundException(id));
 
         if (Optional.ofNullable(slot.getMeeting()).isPresent()) {
-            throw new SlotConflictException(id, slot.getMeeting().getId());
+            throw new SlotConflictException(String.format("Slot have an associated meeting: id=%s, meetingId=%s",
+                    id, slot.getMeeting().getId()));
         }
 
         slotRepository.deleteById(id);

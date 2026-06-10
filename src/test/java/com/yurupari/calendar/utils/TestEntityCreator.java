@@ -70,6 +70,7 @@ public class TestEntityCreator {
                 .meeting(meeting)
                 .startTime(Instant.now().plusSeconds(3600))
                 .endTime(Instant.now().plusSeconds(7200))
+                .status(meeting == null ? SlotStatus.FREE : SlotStatus.BUSY)
                 .build());
     }
 

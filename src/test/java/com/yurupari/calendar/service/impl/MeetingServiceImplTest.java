@@ -230,7 +230,7 @@ class MeetingServiceImplTest {
         when(slotService.getSlots(eq(new HashSet<>(participantsIds)), eq(startTime), eq(endTime), eq(timezone), eq(SlotStatus.FREE)))
                 .thenReturn(Map.of(participantId, List.of()));
 
-        doThrow(new SlotConflictException(participantsIds)).when(meetingValidator).validateParticipantsAvailability(any());
+        doThrow(new SlotConflictException("Some users have busy slots: users=[2]")).when(meetingValidator).validateParticipantsAvailability(any());
 
         assertThrows(SlotConflictException.class, () -> meetingService.createMeeting(createMeetingRequest));
 

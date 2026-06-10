@@ -15,6 +15,8 @@ import java.util.Set;
 @Repository
 public interface SlotRepository extends JpaRepository<Slot, Long> {
 
+    boolean existsByCalendarIdAndStartTimeAndEndTime(Long calendarId, Instant startTime, Instant endTime);
+
     Optional<Slot> findByCalendarIdAndStartTimeAndEndTime(
             Long calendarId,
             Instant startTime,

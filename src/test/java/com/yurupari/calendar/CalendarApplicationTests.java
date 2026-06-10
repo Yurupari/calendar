@@ -37,6 +37,9 @@ import static com.yurupari.calendar.utils.TestConstants.UPDATE_SLOT_BAD_REQUEST_
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_SLOT_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_USER_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_USER_JSON;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -242,9 +245,62 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	}
 
 	// ----- Meeting Tests -----
-	
+
 	@Test
 	void createMeeting_Success() throws Exception {
+		var host = testEntityCreator.createTestUser();
+		var firstParticipant = testEntityCreator.createTestUser("First", "Participant");
+		var secondParticipant = testEntityCreator.createTestUser("Second", "Participant");
+
+		var slot = testEntityCreator.createTestSlot(testEntityCreator.createTestCalendar(host), null);
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(firstParticipant),
+				null);
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(secondParticipant),
+				null);
+
+		var request = jsonTestUtils.loadRequest(CREATE_MEETING_JSON)
+				.replace("\"hostId\": 1", "\"hostId\": " + host.getId())
+				.replace("\"slotId\": 1", "\"slotId\": " + slot.getId());
+
+		mockMvc.perform(post("/api/v1/meeting/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(request))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.id").exists())
+				.andExpect(jsonPath("$.host.id").value(host.getId()))
+				.andExpect(jsonPath("$.title").value("Project Sync"))
+				.andExpect(jsonPath("$.participants").isArray())
+				.andExpect(jsonPath("$.participants.length()").value(2));
+	}
+
+	@Test
+	void createMeeting_Conflict_NoParticipantsAvailable() throws Exception {
+		var host = testEntityCreator.createTestUser();
+		var firstParticipant = testEntityCreator.createTestUser("First", "Participant");
+		var secondParticipant = testEntityCreator.createTestUser("Second", "Participant");
+
+		var slot = testEntityCreator.createTestSlot(testEntityCreator.createTestCalendar(host), null);
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(firstParticipant),
+				testEntityCreator.createTestMeeting(firstParticipant));
+		testEntityCreator.createTestSlot(
+				testEntityCreator.createTestCalendar(secondParticipant),
+				testEntityCreator.createTestMeeting(secondParticipant));
+
+		var request = jsonTestUtils.loadRequest(CREATE_MEETING_JSON)
+				.replace("\"hostId\": 1", "\"hostId\": " + host.getId())
+				.replace("\"slotId\": 1", "\"slotId\": " + slot.getId());
+
+		mockMvc.perform(post("/api/v1/meeting/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(request))
+				.andExpect(status().isConflict());
+	}
+
+	@Test
+	void createMeeting_Conflict_BookedSlot() throws Exception {
 		var host = testEntityCreator.createTestUser();
 		var firstParticipant = testEntityCreator.createTestUser("First", "Participant");
 		var secondParticipant = testEntityCreator.createTestUser("Second", "Participant");
@@ -264,12 +320,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 		mockMvc.perform(post("/api/v1/meeting/create")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.id").exists())
-				.andExpect(jsonPath("$.host.id").value(host.getId()))
-				.andExpect(jsonPath("$.title").value("Project Sync"))
-				.andExpect(jsonPath("$.participants").isArray())
-				.andExpect(jsonPath("$.participants.length()").value(2));
+				.andExpect(status().isConflict());
 	}
 
 	@Test
@@ -553,6 +604,35 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 	}
 
 	@Test
+	void updateSlot_EmptyMeeting_Success() throws Exception {
+		var user = testEntityCreator.createTestUser();
+		var calendar = testEntityCreator.createTestCalendar(user);
+
+		var slot = testEntityCreator.createTestSlot(
+				calendar,
+				null,
+				Instant.parse("2026-01-01T09:00:00Z"),
+				Instant.parse("2026-01-01T10:00:00Z"),
+				SlotStatus.FREE,
+				null
+		);
+
+		var rawRequest = jsonTestUtils.loadRequest(UPDATE_SLOT_JSON);
+		var customizedRequest = rawRequest.replace("\"meetingId\": 1", "\"meetingId\": null");
+
+		mockMvc.perform(put("/api/v1/slot/" + slot.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(customizedRequest))
+				.andExpect(status().isOk())
+				.andExpect(content().string("Slot updated successfully"));
+
+		var updatedSlot = slotRepository.findById(slot.getId()).orElseThrow();
+        assertNull(updatedSlot.getMeeting());
+		assertEquals(SlotStatus.BUSY, updatedSlot.getStatus());
+		assertEquals(ParticipantRole.INVITEE, updatedSlot.getRole());
+	}
+
+	@Test
 	void updateSlot_BadRequest_InvalidTimeRange() throws Exception {
 		var user = testEntityCreator.createTestUser();
 		var calendar = testEntityCreator.createTestCalendar(user);
@@ -562,7 +642,7 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 				meeting,
 				Instant.parse("2026-01-01T09:00:00Z"),
 				Instant.parse("2026-01-01T10:00:00Z"),
-				SlotStatus.FREE,
+				SlotStatus.BUSY,
 				ParticipantRole.HOST);
 		var request = jsonTestUtils.loadRequest(UPDATE_SLOT_BAD_REQUEST_JSON);
 
@@ -570,6 +650,34 @@ class CalendarApplicationTests extends PostgreSQLTestcontainerBase {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void updateSlot_Conflict_InvalidTimeRange() throws Exception {
+		var user = testEntityCreator.createTestUser();
+		var calendar = testEntityCreator.createTestCalendar(user);
+		var meeting = testEntityCreator.createTestMeeting(user);
+		var slot = testEntityCreator.createTestSlot(
+				calendar,
+				meeting,
+				Instant.parse("2026-01-01T09:00:00Z"),
+				Instant.parse("2026-01-01T10:00:00Z"),
+				SlotStatus.BUSY,
+				ParticipantRole.HOST);
+		testEntityCreator.createTestSlot(
+				calendar,
+				meeting,
+				Instant.parse("2026-01-01T15:00:00Z"),
+				Instant.parse("2026-01-01T16:00:00Z"),
+				SlotStatus.BUSY,
+				ParticipantRole.HOST);
+
+		var request = jsonTestUtils.loadRequest(UPDATE_SLOT_JSON);
+
+		mockMvc.perform(put("/api/v1/slot/" + slot.getId())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(request))
+				.andExpect(status().isConflict());
 	}
 
 	@Test

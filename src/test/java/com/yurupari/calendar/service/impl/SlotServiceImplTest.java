@@ -35,6 +35,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,8 +87,12 @@ class SlotServiceImplTest {
 
     private Slot createTestSlot(Long id, Calendar calendar, Meeting meeting, Instant startTime, Instant endTime) {
         var slotStatus = meeting == null ? SlotStatus.FREE : SlotStatus.BUSY;
-        var participantRol = meeting == null ? null : ParticipantRole.INVITEE;
-        return TestModelFactory.createTestSlot(id, calendar, meeting, startTime, endTime, slotStatus, participantRol);
+        var role = meeting == null ? null : ParticipantRole.INVITEE;
+        return TestModelFactory.createTestSlot(id, calendar, meeting, startTime, endTime, slotStatus, role);
+    }
+
+    private Slot createTestSlot(Long id, Calendar calendar, Instant startTime, Instant endTime, SlotStatus slotStatus, ParticipantRole role) {
+        return TestModelFactory.createTestSlot(id, calendar, null, startTime, endTime, slotStatus, role);
     }
 
     private CalendarDto createTestCalendarDto(Long id, Long userId) {
@@ -390,6 +395,7 @@ class SlotServiceImplTest {
         );
 
         doNothing().when(slotValidator).validateDates(anyString(), anyString());
+        doNothing().when(slotValidator).validateExistingTimeFrame(anyLong(), any(), any());
         when(slotRepository.findById(slotId)).thenReturn(Optional.of(existingSlot));
         when(timeUtil.parseIsoStringToInstant(newStartTimeStr, calendar.getTimezone())).thenReturn(newStartTime);
         when(timeUtil.parseIsoStringToInstant(newEndTimeStr, calendar.getTimezone())).thenReturn(newEndTime);
@@ -405,6 +411,64 @@ class SlotServiceImplTest {
         assertEquals(meetingId, newSlot.getMeeting().getId());
 
         verify(slotValidator, times(1)).validateDates(newStartTimeStr, newEndTimeStr);
+        verify(slotValidator, times(1)).validateExistingTimeFrame(calendarId, newStartTime, newEndTime);
+        verify(slotRepository, times(1)).findById(slotId);
+        verify(timeUtil, times(1)).parseIsoStringToInstant(newStartTimeStr, calendar.getTimezone());
+        verify(timeUtil, times(1)).parseIsoStringToInstant(newEndTimeStr, calendar.getTimezone());
+        verify(slotMapper, times(1)).updateEntityFromDto(any(SlotDto.class), any(Slot.class));
+        verify(slotRepository, times(1)).save(any(Slot.class));
+    }
+
+    @Test
+    void updateSlot_EmptyMeeting_Success() {
+        Long slotId = 1L;
+        Long calendarId = 10L;
+        Long userId = 1L;
+        var newStartTimeStr = "2026-01-01T10:00:00";
+        var newEndTimeStr = "2026-01-01T11:00:00";
+        var newStartTime = Instant.parse("2026-01-01T10:00:00Z");
+        var newEndTime = Instant.parse("2026-01-01T11:00:00Z");
+
+        var updateSlotRequest = TestModelFactory.createTestUpdateSlotRequest(
+                null,
+                newStartTimeStr,
+                newEndTimeStr,
+                SlotStatus.BUSY,
+                null);
+        var user = createTestUser(userId);
+        var calendar = createTestCalendar(calendarId, user);
+        var existingSlot = createTestSlot(
+                slotId,
+                calendar,
+                null,
+                Instant.parse("2026-01-01T09:00:00Z"),
+                Instant.parse("2026-01-01T10:00:00Z"));
+        var newSlot = createTestSlot(
+                slotId,
+                calendar,
+                newStartTime,
+                newEndTime,
+                SlotStatus.BUSY,
+                null
+        );
+
+        doNothing().when(slotValidator).validateDates(anyString(), anyString());
+        doNothing().when(slotValidator).validateExistingTimeFrame(anyLong(), any(), any());
+        when(slotRepository.findById(slotId)).thenReturn(Optional.of(existingSlot));
+        when(timeUtil.parseIsoStringToInstant(newStartTimeStr, calendar.getTimezone())).thenReturn(newStartTime);
+        when(timeUtil.parseIsoStringToInstant(newEndTimeStr, calendar.getTimezone())).thenReturn(newEndTime);
+        when(slotRepository.save(any(Slot.class))).thenReturn(existingSlot);
+
+        slotService.updateSlot(slotId, updateSlotRequest);
+
+        assertEquals(newStartTime, newSlot.getStartTime());
+        assertEquals(newEndTime, newSlot.getEndTime());
+        assertEquals(SlotStatus.BUSY, newSlot.getStatus());
+        assertNull(newSlot.getRole());
+        assertNull(newSlot.getMeeting());
+
+        verify(slotValidator, times(1)).validateDates(newStartTimeStr, newEndTimeStr);
+        verify(slotValidator, times(1)).validateExistingTimeFrame(calendarId, newStartTime, newEndTime);
         verify(slotRepository, times(1)).findById(slotId);
         verify(timeUtil, times(1)).parseIsoStringToInstant(newStartTimeStr, calendar.getTimezone());
         verify(timeUtil, times(1)).parseIsoStringToInstant(newEndTimeStr, calendar.getTimezone());

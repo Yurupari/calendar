@@ -9,18 +9,34 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class MeetingValidator {
 
+    public void validateHostSlot(SlotResponse slot) {
+        var meetingId = slot.meetingId();
+        if (meetingId != null) {
+            throw new SlotConflictException(String.format("Slot has already been booked: slotId=%s", meetingId));
+        }
+    }
+
     public void validateParticipantsAvailability(Map<Long, List<SlotResponse>> userSlots) {
+        if (userSlots.isEmpty()) {
+            throw new SlotConflictException("No users available");
+        }
+
         var busyParticipants = userSlots.entrySet().stream()
                 .filter(entry -> entry.getValue().isEmpty())
                 .map(Map.Entry::getKey)
                 .toList();
 
         if (!busyParticipants.isEmpty()) {
-            throw new SlotConflictException(busyParticipants);
+            var usersStr = busyParticipants.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+
+            throw new SlotConflictException(String.format("Some users have busy slots: users=[%s]", usersStr));
         }
     }
 

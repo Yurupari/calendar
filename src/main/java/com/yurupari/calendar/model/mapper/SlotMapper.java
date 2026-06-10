@@ -24,10 +24,9 @@ public interface SlotMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Slot toEntity(SlotDto dto);
 
+    @Mapping(source = "meetingId", target = "meeting.id")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "calendar", ignore = true)
-    @Mapping(target = "meeting", ignore = true)
-    @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(SlotDto dto, @MappingTarget Slot entity);

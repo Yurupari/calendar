@@ -1,6 +1,8 @@
 package com.yurupari.calendar.validator;
 
 import com.yurupari.calendar.exception.InvalidFormatException;
+import com.yurupari.calendar.exception.SlotConflictException;
+import com.yurupari.calendar.repository.SlotRepository;
 import com.yurupari.calendar.util.TimeUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,8 @@ import java.time.Instant;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +24,9 @@ class SlotValidatorTest {
 
     @InjectMocks
     private SlotValidator slotValidator;
+
+    @Mock
+    private SlotRepository slotRepository;
 
     @Test
     void validateDates_Success() {
@@ -75,5 +82,36 @@ class SlotValidatorTest {
         String until = "   ";
 
         assertThrows(InvalidFormatException.class, () -> slotValidator.validateDates(from, until));
+    }
+
+    @Test
+    void validateExistingTimeFrame_Success_NoConflict() {
+        Long calendarId = 1L;
+        var startTime = Instant.parse("2026-01-01T09:00:00Z");
+        var endTime = Instant.parse("2026-01-01T10:00:00Z");
+
+        when(slotRepository.existsByCalendarIdAndStartTimeAndEndTime(calendarId, startTime, endTime))
+                .thenReturn(false);
+
+        assertDoesNotThrow(() -> slotValidator.validateExistingTimeFrame(calendarId, startTime, endTime));
+
+        verify(slotRepository, times(1))
+                .existsByCalendarIdAndStartTimeAndEndTime(calendarId, startTime, endTime);
+    }
+
+    @Test
+    void validateExistingTimeFrame_Conflict_ThrowsSlotConflictException() {
+        Long calendarId = 1L;
+        Instant startTime = Instant.parse("2026-01-01T09:00:00Z");
+        Instant endTime = Instant.parse("2026-01-01T10:00:00Z");
+
+        when(slotRepository.existsByCalendarIdAndStartTimeAndEndTime(calendarId, startTime, endTime))
+                .thenReturn(true);
+
+        assertThrows(SlotConflictException.class,
+                () -> slotValidator.validateExistingTimeFrame(calendarId, startTime, endTime));
+
+        verify(slotRepository, times(1))
+                .existsByCalendarIdAndStartTimeAndEndTime(calendarId, startTime, endTime);
     }
 }

@@ -61,7 +61,8 @@ class MeetingValidatorTest {
                 2L, List.of()
         );
 
-        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class,
+                () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertEquals("Some users have busy slots: users=[2]", exception.getMessage());
     }
 
@@ -80,7 +81,8 @@ class MeetingValidatorTest {
                 3L, List.of()
         );
 
-        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class,
+                () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertTrue(exception.getMessage().contains("Some users have busy slots: users=["));
     }
 
@@ -106,14 +108,17 @@ class MeetingValidatorTest {
                         null))
         );
 
-        var exception = assertThrows(SlotConflictException.class, () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class,
+                () -> meetingValidator.validateParticipantsAvailability(userSlots));
         assertEquals("Some users have busy slots: users=[2]", exception.getMessage());
     }
 
     @Test
-    void validateParticipantsAvailability_EmptyMap_DoesNotThrowException() {
+    void validateParticipantsAvailability_EmptyMap_ThrowsException() {
         var userSlots = Map.<Long, List<SlotResponse>>of();
 
-        assertDoesNotThrow(() -> meetingValidator.validateParticipantsAvailability(userSlots));
+        var exception = assertThrows(SlotConflictException.class,
+                () -> meetingValidator.validateParticipantsAvailability(userSlots));
+        assertEquals("No users available", exception.getMessage());
     }
 }

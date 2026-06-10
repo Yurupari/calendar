@@ -87,14 +87,14 @@ class ErrorHandlerTest {
 
     @Test
     void handleParticipantSlotConflictException_ReturnsConflict() {
-        var exception = new SlotConflictException(TEST_ID);
+        var exception = new SlotConflictException(TEST_MESSAGE);
         var responseEntity = errorHandler.handleParticipantSlotConflictException(exception);
 
         assertNotNull(responseEntity);
         assertEquals(HttpStatus.CONFLICT, responseEntity.getStatusCode());
         assertNotNull(responseEntity.getBody());
         assertEquals(HttpStatus.CONFLICT, responseEntity.getBody().httpStatus());
-        assertTrue(responseEntity.getBody().message().contains(String.valueOf(TEST_ID)));
+        assertTrue(responseEntity.getBody().message().contains(String.valueOf(TEST_MESSAGE)));
     }
 
     @Test
