@@ -14,6 +14,17 @@ services:
       - db-data:/var/lib/postgresql
       - db-logs:/var/log/postgresql
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres_exporter_calendar
+    restart: always
+    environment:
+      - DATA_SOURCE_NAME=postgresql://user:password@postgres:5432/calendar?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+
   calendar-service:
     build:
       context: .
@@ -33,6 +44,39 @@ services:
     depends_on:
       - postgres
 
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    container_name: prometheus_calendar
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=5d
+      - --web.enable-lifecycle
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  grafana:
+    image: grafana/grafana:11.6.14
+    container_name: grafana_calendar
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   db-data:
   db-logs:
+  grafana-data:
