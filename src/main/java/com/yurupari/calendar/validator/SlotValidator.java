@@ -3,7 +3,6 @@ package com.yurupari.calendar.validator;
 import com.yurupari.calendar.exception.InvalidFormatException;
 import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.repository.SlotRepository;
-import com.yurupari.calendar.util.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
