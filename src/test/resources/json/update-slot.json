@@ -1,0 +1,7 @@
+{
+  "meetingId": 1,
+  "startTime": "2026-01-01T10:00:00",
+  "endTime": "2026-01-01T11:00:00",
+  "status": "BUSY",
+  "role": "INVITEE"
+}

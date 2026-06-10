@@ -1,0 +1,6 @@
+{
+  "name": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "timezone": "America/New_York"
+}
