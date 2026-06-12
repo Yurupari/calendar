@@ -3,7 +3,6 @@ package com.yurupari.calendar.service.impl;
 import com.yurupari.calendar.exception.MeetingNotFoundException;
 import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
-import com.yurupari.calendar.exception.UserNotFoundException;
 import com.yurupari.calendar.model.dto.SlotInformationDto;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.enums.MeetingStatus;
@@ -11,9 +10,7 @@ import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.enums.Status;
 import com.yurupari.calendar.model.mapper.MeetingMapperImpl;
-import com.yurupari.calendar.model.mapper.UserMapperImpl;
 import com.yurupari.calendar.model.request.UpdateSlotRequest;
-import com.yurupari.calendar.model.response.UserResponse;
 import com.yurupari.calendar.repository.MeetingRepository;
 import com.yurupari.calendar.service.CalendarService;
 import com.yurupari.calendar.service.SlotService;
@@ -72,9 +69,6 @@ class MeetingServiceImplTest {
 
     @Spy
     private MeetingMapperImpl meetingMapper = new MeetingMapperImpl();
-
-    @Spy
-    private UserMapperImpl userMapper = new UserMapperImpl();
 
     @Test
     void createMeeting_Success_NoParticipants() {

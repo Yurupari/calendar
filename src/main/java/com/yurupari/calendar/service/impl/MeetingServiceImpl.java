@@ -53,8 +53,6 @@ public class MeetingServiceImpl implements MeetingService {
 
     private final MeetingMapper meetingMapper;
 
-    private final UserMapper userMapper;
-
     @Override
     @Transactional
     public MeetingResponse createMeeting(CreateMeetingRequest createMeetingRequest) {
@@ -107,8 +105,11 @@ public class MeetingServiceImpl implements MeetingService {
 
         var meetingId = meeting.getId();
         var users = userService.getUsersByMeetingId(meetingId);
-        var host = userMapper.toDto(meeting.getHost());
-        var hostId = host.id();
+        var hostId = meeting.getHost().getId();
+        var host = users.stream()
+                .filter(user -> hostId.equals(user.id()))
+                .findFirst()
+                .orElseThrow(() -> new UserNotFoundException(hostId));
         var timezone = calendarService.getCalendarByUserId(hostId).timezone();
         var participants = getParticipants(hostId, users);
 
