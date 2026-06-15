@@ -38,7 +38,6 @@ import static com.yurupari.calendar.utils.TestConstants.UPDATE_SLOT_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_USER_BAD_REQUEST_JSON;
 import static com.yurupari.calendar.utils.TestConstants.UPDATE_USER_JSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
