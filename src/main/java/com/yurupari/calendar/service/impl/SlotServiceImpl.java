@@ -6,9 +6,9 @@ import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
 import com.yurupari.calendar.model.dto.SlotInformationDto;
+import com.yurupari.calendar.model.dto.UserSlotDto;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
-import com.yurupari.calendar.model.enums.ParticipantRole;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import com.yurupari.calendar.model.mapper.SlotMapper;
 import com.yurupari.calendar.model.request.CreateSlotRequest;
@@ -72,14 +72,7 @@ public class SlotServiceImpl implements SlotService {
                 .build();
         var savedSlot = slotRepository.save(slotMapper.toEntity(slot));
 
-        return SlotResponse.builder()
-                .id(savedSlot.getId())
-                .calendarId(calendarDto.id())
-                .startTime(timeUtil.parseInstantToIsoString(savedSlot.getStartTime(), calendarDto.timezone()))
-                .endTime(timeUtil.parseInstantToIsoString(savedSlot.getEndTime(), calendarDto.timezone()))
-                .status(savedSlot.getStatus())
-                .role(savedSlot.getRole())
-                .build();
+        return slotMapper.toSlotResponse(savedSlot, calendarDto.timezone(), timeUtil);
     }
 
     @Override
@@ -89,7 +82,7 @@ public class SlotServiceImpl implements SlotService {
         var slot = slotRepository.findById(id)
                 .orElseThrow(() -> new SlotNotFoundException(id));
 
-        return buildSlotResponse(slot);
+        return slotMapper.toSlotResponse(slot, slot.getCalendar().getTimezone(), timeUtil);
     }
 
     @Override
@@ -102,7 +95,7 @@ public class SlotServiceImpl implements SlotService {
         var untilInstant = timeUtil.parseIsoStringToInstant(until, calendarDto.timezone());
 
         return slotRepository.findSlotsWithOptionalStatus(calendarDto.id(), fromInstant, untilInstant, status).stream()
-                .map(this::buildSlotResponse)
+                .map(slot -> slotMapper.toSlotResponse(slot, calendarDto.timezone(), timeUtil))
                 .toList();
     }
 
@@ -110,23 +103,16 @@ public class SlotServiceImpl implements SlotService {
     public Map<Long, List<SlotResponse>> getSlots(Set<Long> userIds, String from, String until, String timezone, SlotStatus status) {
         log.info("Getting slots: userIds=[{}], from={}, until={}", userIds, from, until);
 
-        var calendars = calendarService.getCalendarsByUserIds(userIds);
-        var calendarsIds = calendars.stream()
-                .map(CalendarDto::id)
-                .collect(Collectors.toSet());
-        var calendarToUserMap = calendars.stream()
-                .collect(Collectors.toMap(CalendarDto::id, CalendarDto::userId));
-
         var fromInstant = timeUtil.parseIsoStringToInstant(from, timezone);
         var untilInstant = timeUtil.parseIsoStringToInstant(until, timezone);
 
-        var slots = slotRepository.findSlotsWithOptionalStatusInCalendars(calendarsIds, fromInstant, untilInstant, status);
+        var userSlots = slotRepository.findSlotsWithOptionalStatusInUsers(userIds, fromInstant, untilInstant, status);
 
-        return slots.stream()
+        return userSlots.stream()
                 .collect(Collectors.groupingBy(
-                        slot -> calendarToUserMap.get(slot.getCalendar().getId()),
+                        UserSlotDto::userId,
                         Collectors.mapping(
-                                this::buildSlotResponse,
+                                userSlot -> slotMapper.toSlotResponse(userSlot.slot(), userSlot.timezone(), timeUtil),
                                 Collectors.toList()
                         )
                 ));
@@ -210,23 +196,5 @@ public class SlotServiceImpl implements SlotService {
         }
 
         slotRepository.deleteById(id);
-    }
-
-    private SlotResponse buildSlotResponse(Slot slot) {
-        var timezone = slot.getCalendar().getTimezone();
-
-        var meetingId = Optional.ofNullable(slot.getMeeting())
-                .map(Meeting::getId)
-                .orElse(null);
-
-        return SlotResponse.builder()
-                .id(slot.getId())
-                .calendarId(slot.getCalendar().getId())
-                .meetingId(meetingId)
-                .startTime(timeUtil.parseInstantToIsoString(slot.getStartTime(), timezone))
-                .endTime(timeUtil.parseInstantToIsoString(slot.getEndTime(), timezone))
-                .status(slot.getStatus())
-                .role(slot.getRole())
-                .build();
     }
 }

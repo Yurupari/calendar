@@ -6,6 +6,7 @@ import com.yurupari.calendar.exception.SlotConflictException;
 import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
+import com.yurupari.calendar.model.dto.UserSlotDto;
 import com.yurupari.calendar.model.entity.Calendar;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
@@ -595,18 +596,27 @@ class SlotServiceImplTest {
                 null,
                 Instant.parse("2026-01-01T09:00:00Z"),
                 Instant.parse("2026-01-01T10:00:00Z"));
+        var userSlot1 = UserSlotDto.builder()
+                .userId(1L)
+                .timezone(timezone)
+                .slot(slot1)
+                .build();
         var slot2 = createTestSlot(
                 101L,
                 calendar2,
                 null,
                 Instant.parse("2026-01-01T11:00:00Z"),
                 Instant.parse("2026-01-01T12:00:00Z"));
-        var foundSlots = List.of(slot1, slot2);
+        var userSlot2 = UserSlotDto.builder()
+                .userId(2L)
+                .timezone(timezone)
+                .slot(slot2)
+                .build();
+        var foundSlots = List.of(userSlot1, userSlot2);
 
-        when(calendarService.getCalendarsByUserIds(userIds)).thenReturn(calendarsList);
         when(timeUtil.parseIsoStringToInstant(fromStr, timezone)).thenReturn(fromInstant);
         when(timeUtil.parseIsoStringToInstant(untilStr, timezone)).thenReturn(untilInstant);
-        when(slotRepository.findSlotsWithOptionalStatusInCalendars(Set.of(10L, 11L), fromInstant, untilInstant, SlotStatus.FREE))
+        when(slotRepository.findSlotsWithOptionalStatusInUsers(Set.of(1L, 2L), fromInstant, untilInstant, SlotStatus.FREE))
                 .thenReturn(foundSlots);
         when(timeUtil.parseInstantToIsoString(any(Instant.class), anyString())).thenReturn(
                 "2026-01-01T04:00:00", "2026-01-01T05:00:00",
@@ -624,11 +634,10 @@ class SlotServiceImplTest {
         assertEquals(100L, result.get(1L).getFirst().id());
         assertEquals(101L, result.get(2L).getFirst().id());
 
-        verify(calendarService, times(1)).getCalendarsByUserIds(userIds);
         verify(timeUtil, times(1)).parseIsoStringToInstant(fromStr, timezone);
         verify(timeUtil, times(1)).parseIsoStringToInstant(untilStr, timezone);
         verify(slotRepository, times(1))
-                .findSlotsWithOptionalStatusInCalendars(anySet(), any(), any(), any());
+                .findSlotsWithOptionalStatusInUsers(anySet(), any(), any(), any());
         verify(timeUtil, times(4)).parseInstantToIsoString(any(Instant.class), anyString());
     }
 

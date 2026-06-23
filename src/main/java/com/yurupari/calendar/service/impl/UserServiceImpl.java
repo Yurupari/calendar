@@ -58,14 +58,7 @@ public class UserServiceImpl implements UserService {
 
                     var existingCalendarDto = calendarService.activateCalendar(savedUser.getId());
 
-                    return UserResponse.builder()
-                            .id(savedUser.getId())
-                            .name(savedUser.getName())
-                            .lastName(savedUser.getLastName())
-                            .email(savedUser.getEmail())
-                            .calendarId(existingCalendarDto.id())
-                            .timezone(existingCalendarDto.timezone())
-                            .build();
+                    return userMapper.toUserResponse(savedUser, existingCalendarDto);
                 })
                 .orElseGet(() -> {
                     var user = userMapper.toEntity(userDto);
@@ -78,14 +71,7 @@ public class UserServiceImpl implements UserService {
 
                     var savedCalendarDto = calendarService.createCalendar(calendarDto);
 
-                    return UserResponse.builder()
-                            .id(savedUser.getId())
-                            .name(savedUser.getName())
-                            .lastName(savedUser.getLastName())
-                            .email(savedUser.getEmail())
-                            .calendarId(savedCalendarDto.id())
-                            .timezone(savedCalendarDto.timezone())
-                            .build();
+                    return userMapper.toUserResponse(savedUser, savedCalendarDto);
                 });
     }
 
@@ -98,14 +84,7 @@ public class UserServiceImpl implements UserService {
                 .map(u -> {
                     var calendarDto = calendarService.getCalendarByUserId(u.getId());
 
-                    return UserResponse.builder()
-                            .id(u.getId())
-                            .name(u.getName())
-                            .lastName(u.getLastName())
-                            .email(u.getEmail())
-                            .calendarId(calendarDto.id())
-                            .timezone(calendarDto.timezone())
-                            .build();
+                    return userMapper.toUserResponse(u, calendarDto);
                 })
                 .orElseThrow(() -> new UserNotFoundException(id));
     }
@@ -119,14 +98,7 @@ public class UserServiceImpl implements UserService {
                 .map(u -> {
                     var calendarDto = calendarService.getCalendarByUserId(u.getId());
 
-                    return UserResponse.builder()
-                            .id(u.getId())
-                            .name(u.getName())
-                            .lastName(u.getLastName())
-                            .email(u.getEmail())
-                            .calendarId(calendarDto.id())
-                            .timezone(calendarDto.timezone())
-                            .build();
+                    return userMapper.toUserResponse(u, calendarDto);
                 })
                 .orElseThrow(() -> new UserNotFoundException(email));
     }

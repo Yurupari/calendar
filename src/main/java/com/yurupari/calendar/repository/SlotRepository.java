@@ -1,5 +1,6 @@
 package com.yurupari.calendar.repository;
 
+import com.yurupari.calendar.model.dto.UserSlotDto;
 import com.yurupari.calendar.model.entity.Slot;
 import com.yurupari.calendar.model.enums.SlotStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,6 +44,21 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
             """)
     List<Slot> findSlotsWithOptionalStatusInCalendars(
             Set<Long> calendarIds,
+            Instant startTime,
+            Instant endTime,
+            SlotStatus status);
+
+    @Query("""
+            SELECT new com.yurupari.calendar.model.dto.UserSlotDto(c.user.id, c.timezone, s)
+            FROM Slot s
+            JOIN Calendar c ON s.calendar.id = c.id
+            WHERE c.user.id IN :userIds
+            AND s.startTime >= :startTime
+            AND s.startTime < :endTime
+            AND (CAST(:status AS string) IS NULL OR s.status = :status)
+            """)
+    List<UserSlotDto> findSlotsWithOptionalStatusInUsers(
+            Set<Long> userIds,
             Instant startTime,
             Instant endTime,
             SlotStatus status);
