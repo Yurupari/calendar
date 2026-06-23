@@ -6,6 +6,7 @@ import com.yurupari.calendar.exception.SlotNotFoundException;
 import com.yurupari.calendar.model.dto.CalendarDto;
 import com.yurupari.calendar.model.dto.SlotDto;
 import com.yurupari.calendar.model.dto.SlotInformationDto;
+import com.yurupari.calendar.model.dto.UserSlotDto;
 import com.yurupari.calendar.model.entity.Meeting;
 import com.yurupari.calendar.model.entity.Slot;
 import com.yurupari.calendar.model.enums.SlotStatus;
@@ -102,29 +103,16 @@ public class SlotServiceImpl implements SlotService {
     public Map<Long, List<SlotResponse>> getSlots(Set<Long> userIds, String from, String until, String timezone, SlotStatus status) {
         log.info("Getting slots: userIds=[{}], from={}, until={}", userIds, from, until);
 
-        var calendars = calendarService.getCalendarsByUserIds(userIds);
-        var calendarsIds = calendars.stream()
-                .map(CalendarDto::id)
-                .collect(Collectors.toSet());
-        var calendarToUserMap = calendars.stream()
-                .collect(Collectors.toMap(CalendarDto::id, CalendarDto::userId));
-
         var fromInstant = timeUtil.parseIsoStringToInstant(from, timezone);
         var untilInstant = timeUtil.parseIsoStringToInstant(until, timezone);
 
-        var slots = slotRepository.findSlotsWithOptionalStatusInCalendars(calendarsIds, fromInstant, untilInstant, status);
+        var userSlots = slotRepository.findSlotsWithOptionalStatusInUsers(userIds, fromInstant, untilInstant, status);
 
-        var calendarToTimezoneMap = calendars.stream()
-                .collect(Collectors.toMap(CalendarDto::id, CalendarDto::timezone));
-
-        return slots.stream()
+        return userSlots.stream()
                 .collect(Collectors.groupingBy(
-                        slot -> calendarToUserMap.get(slot.getCalendar().getId()),
+                        UserSlotDto::userId,
                         Collectors.mapping(
-                                slot -> {
-                                    var slotTimezone = calendarToTimezoneMap.get(slot.getCalendar().getId());
-                                    return slotMapper.toSlotResponse(slot, slotTimezone, timeUtil);
-                                },
+                                userSlot -> slotMapper.toSlotResponse(userSlot.slot(), userSlot.timezone(), timeUtil),
                                 Collectors.toList()
                         )
                 ));
